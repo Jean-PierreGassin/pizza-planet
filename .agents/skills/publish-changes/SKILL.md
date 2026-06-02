@@ -43,6 +43,17 @@ Use this when the user asks to commit, push, open a pull request, merge, or clea
 - Prefer tracked issue or pull-request artifacts for broad project work when the project is wired for them.
 - If checks fail, inspect the failing logs and fix the underlying issue instead of guessing from status names.
 
+A good pull request looks like:
+```markdown
+**Change type**: [feature|bugfix|docs|refactor|test|chore]
+**Description**: This pull request implements the ability to:
+- xyz
+
+I've verified that the changes work as expected by:
+- Ensuring the testsuite passes in full
+- Testing the changes locally
+```
+
 ## After Merge
 
 - Delete merged branches when requested or expected by the workflow.
