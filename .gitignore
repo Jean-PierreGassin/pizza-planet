@@ -1,0 +1,11 @@
+# Dependencies
+/vendor/
+
+# IDEs / editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
