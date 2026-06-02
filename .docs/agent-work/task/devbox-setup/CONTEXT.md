@@ -64,10 +64,6 @@ The devbox direction is now Jetify Devbox with no Docker. The selected local sta
   - Source: `.docs/WRITING-TESTS.md`
   - Impact: Devbox verification should make room for both PHP and Node test tooling.
 
-- Discovery: `devbox` is not currently installed in this execution environment.
-  - Source: `command -v devbox`
-  - Impact: `devbox.lock` and live service verification cannot be generated until Devbox is installed.
-
 - Discovery: Devbox became available and `devbox run preflight` passed.
   - Source: `devbox run preflight`
   - Impact: The toolchain resolves to PHP 8.5.6, Composer 2.9.8, Node 24.12.0, pnpm 11.1.2, MySQL 8.0.45, and Redis 8.6.3.
@@ -75,6 +71,14 @@ The devbox direction is now Jetify Devbox with no Docker. The selected local sta
 - Discovery: `devbox services ls` reported no services running even while MySQL and Redis health checks passed.
   - Source: `devbox services ls` and `devbox run services:check`
   - Impact: README and scripts should use `services:check` as the reliable status signal.
+
+- Discovery: `devbox.lock` was generated and committed.
+  - Source: `devbox.lock`
+  - Impact: The Devbox toolchain is reproducible from the repository.
+
+- Discovery: `backend/` and `frontend/` contain only placeholder `.gitignore` files.
+  - Source: `find backend frontend -maxdepth 2 -type f`
+  - Impact: Framework scaffolding can proceed without moving existing app code.
 
 ## Changes in Direction
 
@@ -89,13 +93,10 @@ The devbox direction is now Jetify Devbox with no Docker. The selected local sta
   - Impact: Laravel scaffolding could fail or require a different PHP version if the chosen LTS does not support PHP 8.5 yet.
   - Possible resolution: Confirm Laravel LTS and Composer package compatibility before scaffolding.
 
-- Blocker: Devbox is not installed in this execution environment.
-  - Impact: `devbox.lock` cannot be generated and services cannot be started for live verification yet.
-  - Possible resolution: Install Devbox, then run `devbox install`, `devbox run preflight`, and `devbox services up -b`.
-
 ## Notes
 
 - Do not commit secrets, private keys, credentials, tokens, real `.env` values, production database dumps, or service account files.
 - Frontend public environment variables must be treated as public and must not contain secrets.
 - Local service accounts should use least privilege.
 - Jetify docs say `devbox.json` lives in the project root, `devbox.lock` should be committed, packages can be pinned with `package@version`, scripts run via `devbox run`, and services run via `devbox services`.
+- Laravel and Vue app commands in README are written for the post-scaffold steady state and cannot be run until the app scaffolds exist.
