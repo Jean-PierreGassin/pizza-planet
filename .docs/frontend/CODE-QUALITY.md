@@ -1,6 +1,6 @@
 # Code Quality
 
-This project uses StandardJS coding standards for JavaScript/TypeScript code quality.
+This project uses ESLint for JavaScript, TypeScript, and Vue code quality.
 
 ## Type Safety
 
