@@ -1,11 +1,12 @@
 # Dependencies
-/vendor/
+/vendor
+/node_modules
 
 # Laravel environment / secrets
 .env
-.env.*
-!.env.example
-auth.json
+.env.backup
+.env.production
+/auth.json
 secrets.json
 credentials.json
 
@@ -13,17 +14,37 @@ credentials.json
 /storage/*.key
 /storage/oauth-*.key
 /storage/debugbar/
+/storage/pail
 /storage/logs/*.log
 /bootstrap/cache/*.php
 
-# Public symlink
+# Public build artifacts / symlinks
+/public/build
+/public/fonts-manifest.dev.json
+/public/hot
 /public/storage
 
 # Testing / coverage
-/.phpunit.cache/
-/.phpunit.result.cache
-/.pest/
-/coverage/
+/.phpunit.cache
+.phpunit.result.cache
+/.pest
+/coverage
+
+# IDE / local tooling
+/.codex
+/.cursor/
+/.idea
+/.nova
+/.vscode
+/.zed
+.phpactor.json
+_ide_helper.php
+
+# Local machine files
+.DS_Store
+Homestead.json
+Homestead.yaml
+Thumbs.db
 
 # Logs
 *.log
