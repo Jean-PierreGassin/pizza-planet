@@ -1,6 +1,14 @@
 # Dependencies
 /vendor/
 
+# Devbox
+/.devbox/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
 # IDEs / editors
 .idea/
 .vscode/
