@@ -6,6 +6,8 @@ Pizza Planet is a split Laravel and Vue application.
 - Frontend code lives in `frontend/`.
 - Local development uses Jetify Devbox.
 - MySQL and Redis run through Devbox services.
+- Backend setup and commands: [backend/README.md](backend/README.md)
+- Frontend setup and commands: [frontend/README.md](frontend/README.md)
 
 ## Get up and running
 
@@ -35,34 +37,10 @@ devbox run db:setup
 devbox run services:check
 ```
 
-Install backend dependencies:
+Install and run each app using its own guide:
 
-```sh
-cd backend
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate
-```
-
-Install frontend dependencies:
-
-```sh
-cd frontend
-pnpm install
-```
-
-Run the app in two terminals:
-
-```sh
-cd backend
-php artisan serve
-```
-
-```sh
-cd frontend
-pnpm dev
-```
+- [Backend guide](backend/README.md)
+- [Frontend guide](frontend/README.md)
 
 Stop background services when you are finished:
 
@@ -72,17 +50,7 @@ devbox run services:stop
 
 ## Checks
 
-Run backend tests and static analysis from `backend/`:
+Run app-specific checks using each guide:
 
-```sh
-composer test
-composer analyse
-```
-
-Run frontend tests and linting from `frontend/`:
-
-```sh
-pnpm test
-pnpm lint
-pnpm typecheck
-```
+- Backend: [backend/README.md](backend/README.md)
+- Frontend: [frontend/README.md](frontend/README.md)

@@ -7,6 +7,12 @@ All tests written for this project should be written using PHPUnit and Vitest.
 - Write to fail-first, then implement the solution to pass (TDD)
 - Use data providers for repetitive test cases
 
+## Methods
+
+- Use camelCase for method names
+- Use `test` prefix e.g `testThisDoesThat` without being too verbose
+- If method names are too long, consider using a docblock to explain what the test is doing
+
 ## Unit Tests
 
 - Test a single method with expected inputs and outputs
