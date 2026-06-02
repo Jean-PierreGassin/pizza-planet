@@ -15,7 +15,13 @@ php artisan key:generate
 php artisan migrate
 ```
 
-Start the backend server:
+Start the backend server from the repo root as part of the Devbox service set:
+
+```sh
+devbox run services:start
+```
+
+For backend-only work, you can still run:
 
 ```sh
 composer dev
