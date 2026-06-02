@@ -1,25 +1,12 @@
 import { mount } from '@vue/test-utils'
-import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '@/pages/HomePage.vue'
+import { createTestRouter } from '../support/router'
 
 describe('HomePage', () => {
   it('renders the scaffold readiness state', async () => {
-    const router = createRouter({
-      history: createWebHistory(),
-      routes: [
-        {
-          path: '/',
-          component: HomePage
-        }
-      ]
-    })
-
-    await router.push('/')
-    await router.isReady()
-
     const wrapper = mount(HomePage, {
       global: {
-        plugins: [router]
+        plugins: [await createTestRouter()]
       }
     })
 

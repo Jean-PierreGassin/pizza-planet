@@ -76,12 +76,19 @@ function buildUrl (baseUrl: string, path: string): string {
 
 function buildRequest (options: ApiRequestOptions): RequestInit {
   const headers = new Headers(options.headers)
+  applyDefaultHeaders(headers)
   const body = buildBody(options.body, headers)
 
   return {
     ...options,
     headers,
     body
+  }
+}
+
+function applyDefaultHeaders (headers: Headers): void {
+  if (!headers.has('Accept')) {
+    headers.set('Accept', 'application/json')
   }
 }
 

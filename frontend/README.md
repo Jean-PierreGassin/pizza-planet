@@ -1,6 +1,6 @@
 # Pizza Planet Frontend
 
-Vue 3, TypeScript, Tailwind CSS, Vite, Vitest, and StandardJS with ts-standard.
+Vue 3, TypeScript, Tailwind CSS, Vite, Vitest, and ESLint.
 
 ## Setup
 
@@ -30,5 +30,5 @@ pnpm build
 - `pnpm preview` serves the built app locally.
 - `pnpm test` runs Vitest once.
 - `pnpm test:watch` runs Vitest in watch mode.
-- `pnpm lint` runs ts-standard.
+- `pnpm lint` runs ESLint.
 - `pnpm typecheck` runs vue-tsc.

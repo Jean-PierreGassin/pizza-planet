@@ -10,7 +10,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "XDG_CACHE_HOME=.cache ts-standard \"*.ts\" \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "lint": "eslint \"**/*.{ts,vue}\"",
     "typecheck": "vue-tsc -b"
   },
   "dependencies": {
@@ -18,20 +18,22 @@
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.1",
+    "@eslint/js": "^9.39.4",
     "@types/node": "^24.10.0",
+    "@vitejs/plugin-vue": "^6.0.1",
     "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.21",
+    "eslint": "^9.39.4",
+    "eslint-plugin-vue": "^10.9.1",
+    "globals": "^17.6.0",
     "happy-dom": "^20.0.10",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
-    "ts-standard": "^12.0.2",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.60.1",
     "vite": "^7.1.12",
     "vitest": "^4.0.7",
+    "vue-eslint-parser": "^10.4.0",
     "vue-tsc": "^3.1.2"
-  },
-  "ts-standard": {
-    "project": "./tsconfig.lint.json"
   }
 }
