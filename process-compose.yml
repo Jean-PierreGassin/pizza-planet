@@ -1,0 +1,13 @@
+version: "0.5"
+
+processes:
+  api:
+    command: "cd backend && composer dev"
+    availability:
+      restart: on_failure
+      max_restarts: 5
+  website:
+    command: "cd frontend && pnpm dev"
+    availability:
+      restart: on_failure
+      max_restarts: 5

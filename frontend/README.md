@@ -9,10 +9,21 @@ Run commands from `frontend/` inside the project Devbox shell.
 ```sh
 pnpm install
 cp .env.example .env
-pnpm dev
 ```
 
 Only put browser-safe values in `.env`. Values prefixed with `VITE_` are bundled into the frontend app and must not contain secrets.
+
+Start the website from the repo root as part of the Devbox service set:
+
+```sh
+devbox run services:start
+```
+
+For frontend-only work, you can still run:
+
+```sh
+pnpm dev
+```
 
 ## Checks
 
