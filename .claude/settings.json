@@ -16,8 +16,6 @@
       "Read(**/storage/oauth-*.key)",
       "Read(storage/*.key)",
       "Read(**/storage/*.key)",
-      "Read(*secret*)",
-      "Read(**/*secret*)",
       "Read(*secrets*)",
       "Read(**/*secrets*)",
       "Read(*credential*)",
