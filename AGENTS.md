@@ -12,6 +12,7 @@ Use this as the short operating agreement for work in this project.
 ## Stack
 
 - Laravel (LTS)
+- MySQL
 - Vue 3 + TypeScript + Tailwind CSS
 - Vite
 - PHPUnit + Vitest
