@@ -29,7 +29,7 @@ return [
      * the headers of the webhook request. A webhook client can use the signature
      * to verify the request hasn't been tampered with.
      */
-    'signer' => \Spatie\WebhookServer\Signer\DefaultSigner::class,
+    'signer' => \App\Services\WebhookHmacSigner::class,
 
     /*
      * This is the name of the header where the signature will be added.
@@ -57,12 +57,12 @@ return [
     /*
      * The amount of times the webhook should be called before we give up.
      */
-    'tries' => (int) env('WEBHOOK_TRIES', 3),
+    'tries' => (int) env('WEBHOOK_TRIES', 6),
 
     /*
      * This class determines how many seconds there should be between attempts.
      */
-    'backoff_strategy' => \Spatie\WebhookServer\BackoffStrategy\ExponentialBackoffStrategy::class,
+    'backoff_strategy' => \App\Services\WebhookDeliveryBackoffStrategy::class,
 
     /*
      * This class is used to dispatch webhooks onto the queue.

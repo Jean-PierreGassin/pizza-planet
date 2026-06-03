@@ -38,9 +38,12 @@ export function useOrders () {
       item.status = result.status
     } catch {
       errorMessage.value = 'That item could not move to the next station yet.'
+      return
     } finally {
       transitioningItemId.value = null
     }
+
+    await loadOrders()
   }
 
   function resetOrders (): void {

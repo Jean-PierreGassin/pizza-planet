@@ -30,6 +30,7 @@ class WebhookDeliveryStateService
             return;
         }
 
+        // TODO: Add a scheduled recovery command that requeues failed sync events after the normal try limit.
         match (true) {
             $event instanceof WebhookCallSucceededEvent => $this->syncEventModels->markDelivered(
                 syncEventModel: $syncEventModel,

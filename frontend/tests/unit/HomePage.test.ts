@@ -43,13 +43,53 @@ const seededOrders: Order[] = [
   }
 ]
 
+const orderAlmostReady: Order[] = [
+  {
+    id: 20,
+    reference: 'PP-MARS-002',
+    fulfillment_type: 'delivery',
+    status: 'in_progress',
+    items: [
+      {
+        id: 60,
+        name: 'Meteor Meatball Pizza',
+        status: 'baking'
+      },
+      {
+        id: 61,
+        name: 'Rocket Salad',
+        status: 'ready'
+      }
+    ]
+  }
+]
+
+const finalizedOrder: Order[] = [
+  {
+    ...orderAlmostReady[0],
+    status: 'ready_for_delivery',
+    items: orderAlmostReady[0].items.map((item) => ({
+      ...item,
+      status: 'ready'
+    }))
+  }
+]
+
+function cloneOrders (orders: Order[]): Order[] {
+  return orders.map((order) => ({
+    ...order,
+    items: order.items.map((item) => ({ ...item }))
+  }))
+}
+
 describe('HomePage', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     vi.mocked(authApi.currentSession).mockResolvedValue({ user: mario })
     vi.mocked(authApi.csrfCookie).mockResolvedValue()
     vi.mocked(authApi.login).mockResolvedValue({ user: mario })
     vi.mocked(authApi.logout).mockResolvedValue()
-    vi.mocked(ordersApi.list).mockResolvedValue({ orders: [...seededOrders] })
+    vi.mocked(ordersApi.list).mockResolvedValue({ orders: cloneOrders(seededOrders) })
     vi.mocked(ordersApi.updateItemStatus).mockResolvedValue({
       order_item_id: 50,
       status: 'preparing'
@@ -91,6 +131,9 @@ describe('HomePage', () => {
     expect(wrapper.text()).toContain('Welcome back, Mario.')
     expect(wrapper.text()).toContain('PP-MOON-001')
     expect(wrapper.text()).toContain('Galactic Garlic Knots')
+    expect(wrapper.text()).toContain('Order status')
+    expect(wrapper.text()).toContain('Items ready')
+    expect(wrapper.text()).toContain('Item status')
   })
 
   it('keeps the user authenticated when initial order loading fails', async () => {
@@ -150,5 +193,35 @@ describe('HomePage', () => {
 
     expect(ordersApi.updateItemStatus).toHaveBeenCalledWith(10, 50, 'preparing')
     expect(wrapper.text()).toContain('preparing')
+  })
+
+  it('refreshes orders after an item move so final order status is visible', async () => {
+    vi.mocked(ordersApi.list)
+      .mockResolvedValueOnce({ orders: cloneOrders(orderAlmostReady) })
+      .mockResolvedValueOnce({ orders: cloneOrders(finalizedOrder) })
+    vi.mocked(ordersApi.updateItemStatus).mockResolvedValue({
+      order_item_id: 60,
+      status: 'ready'
+    })
+
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [await createTestRouter()]
+      }
+    })
+
+    await vi.dynamicImportSettled()
+    await wrapper.get('input[name="email"]').setValue('mario@pizzaplanet.test')
+    await wrapper.get('input[name="password"]').setValue('ilovepizza')
+    await wrapper.get('form').trigger('submit')
+    await vi.dynamicImportSettled()
+    await wrapper.findAll('button').find((button) => button.text() === 'Mark ready')?.trigger('click')
+    await vi.dynamicImportSettled()
+
+    expect(ordersApi.updateItemStatus).toHaveBeenCalledWith(20, 60, 'ready')
+    expect(ordersApi.list).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('Ready orders')
+    expect(wrapper.text()).toContain('ready for delivery')
+    expect(wrapper.text()).toContain('2 / 2')
   })
 })

@@ -14,6 +14,8 @@ The backend still records delivery state in MySQL. Redis only stores pending que
 
 Webhook requests cross a trust boundary between the backend and the website. HMAC signing lets the website verify that a request was produced by the backend and that the payload was not changed in transit.
 
+The sender explicitly uses `App\Services\WebhookHmacSigner`, which calculates an HMAC-SHA256 signature over the JSON payload and sends it in `X-Pizza-Planet-Signature` by default. This keeps the signing behavior owned by the app instead of relying on a package default.
+
 The signing secret must be shared only between the backend and the receiving website. Do not commit real webhook secrets, print them in logs, or paste them into issues, plans, or pull request text.
 
 ## Why Spatie Webhook Server
@@ -39,7 +41,7 @@ WEBHOOK_QUEUE=webhooks
 WEBHOOK_SIGNATURE_HEADER=X-Pizza-Planet-Signature
 WEBHOOK_TIMESTAMP_HEADER=X-Pizza-Planet-Timestamp
 WEBHOOK_TIMEOUT_SECONDS=3
-WEBHOOK_TRIES=3
+WEBHOOK_TRIES=6
 WEBHOOK_VERIFY_SSL=true
 ```
 
@@ -67,3 +69,19 @@ The receiving website should:
 - ignore status changes that do not make sense for its current state
 
 Receiver implementation is outside this backend phase, but the sender includes event IDs, signs payloads, and sends timestamp headers so the receiver can enforce those checks.
+
+## Delivery Failures
+
+Webhook attempts run on the Redis `webhooks` queue. Each sync event starts as `pending`, moves to `processing` before an HTTP attempt, becomes `delivered` after a 2xx response, and becomes `failed` when the final configured attempt cannot be delivered. Failed attempts record the response status and last error in `webhook_sync_events`.
+
+Retries use `App\Services\WebhookDeliveryBackoffStrategy` so bursts do not hammer the website receiver. The retry waits are:
+
+- after attempt 1: 1 minute
+- after attempt 2: 2 minutes
+- after attempt 3: 4 minutes
+- after attempt 4: 8 minutes
+- after attempt 5 and later: 16 minutes
+
+With the default `WEBHOOK_TRIES=6`, the backend makes the initial attempt plus five delayed retries. After the final failure, the event remains in the MySQL ledger as `failed`.
+
+TODO: Add a scheduled recovery command that finds failed sync events, applies an age or attempt threshold, and requeues them without overwhelming the receiver.
