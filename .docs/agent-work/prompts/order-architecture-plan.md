@@ -13,6 +13,7 @@ Represents a single order.
 ```text
 id
 reference
+fulfillment_type
 status
 created_at
 updated_at
@@ -22,6 +23,7 @@ updated_at
 
 ```text
 Stores the top-level order record.
+Stores whether the order is for pickup or delivery.
 Groups related order items together.
 Provides an order-level status for filtering and display.
 ```
@@ -179,7 +181,8 @@ Values:
 ```text
 pending
 in_progress
-ready
+ready_for_pickup
+ready_for_delivery
 completed
 cancelled
 ```
@@ -188,6 +191,30 @@ Purpose:
 
 ```text
 Represents the aggregate status of an order.
+```
+
+---
+
+### `OrderFulfillmentType`
+
+Used by:
+
+```text
+orders.fulfillment_type
+```
+
+Values:
+
+```text
+pickup
+delivery
+```
+
+Purpose:
+
+```text
+Represents how the customer will receive the order.
+Lets the application derive the correct finalized order status.
 ```
 
 ---
@@ -268,6 +295,7 @@ Responsibilities:
 ```text
 Expose order attributes.
 Cast order status to OrderStatus.
+Cast fulfillment type to OrderFulfillmentType.
 Define the relationship to order items.
 ```
 

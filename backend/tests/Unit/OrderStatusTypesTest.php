@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enums\OrderFulfillmentType;
 use App\Enums\OrderItemStatus;
 use App\Enums\OrderStatus;
 use App\Enums\SyncEventStatus;
@@ -14,12 +15,24 @@ class OrderStatusTypesTest extends TestCase
         $this->assertSame([
             'pending',
             'in_progress',
-            'ready',
+            'ready_for_pickup',
+            'ready_for_delivery',
             'completed',
             'cancelled',
         ], array_map(
             fn (OrderStatus $status): string => $status->value,
             OrderStatus::cases(),
+        ));
+    }
+
+    public function testOrderFulfillmentTypeExposesDatabaseValues(): void
+    {
+        $this->assertSame([
+            'pickup',
+            'delivery',
+        ], array_map(
+            fn (OrderFulfillmentType $fulfillmentType): string => $fulfillmentType->value,
+            OrderFulfillmentType::cases(),
         ));
     }
 

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\OrderFulfillmentType;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -15,6 +16,7 @@ class OrderFactory extends Factory
     {
         return [
             'reference' => fake()->unique()->bothify('PP-####'),
+            'fulfillment_type' => OrderFulfillmentType::Pickup,
             'status' => OrderStatus::Pending,
         ];
     }
