@@ -2,6 +2,15 @@
 
 Pizza Planet is a split Laravel and Vue application.
 
+## Contents
+
+- [Project layout](#project-layout)
+- [Get up and running](#get-up-and-running)
+- [Checks](#checks)
+- [Integration guides](#integration-guides)
+
+## Project layout
+
 - Backend code lives in `backend/`.
 - Frontend code lives in `frontend/`.
 - Local development uses Jetify Devbox.
@@ -61,3 +70,7 @@ Run app-specific checks using each guide:
 
 - Backend: [backend/README.md](backend/README.md)
 - Frontend: [frontend/README.md](frontend/README.md)
+
+## Integration guides
+
+- Backend website webhooks: [backend/WEBHOOK-README.md](backend/WEBHOOK-README.md)

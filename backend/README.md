@@ -4,6 +4,13 @@ Laravel backend application for Pizza Planet.
 
 For full repository setup, Devbox services, and frontend commands, use the root `README.md`.
 
+## Contents
+
+- [Local Commands](#local-commands)
+- [Routes](#routes)
+- [Runtime Defaults](#runtime-defaults)
+- [Integration Guides](#integration-guides)
+
 ## Local Commands
 
 Run these from `backend/` after the root setup is complete:
@@ -48,3 +55,7 @@ The scaffold exposes these health/status routes:
 - Queue: Redis
 - Redis client: Predis
 - Cache: Database
+
+## Integration Guides
+
+- Website webhook setup and signing: [WEBHOOK-README.md](WEBHOOK-README.md)
