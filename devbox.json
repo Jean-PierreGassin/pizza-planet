@@ -1,0 +1,52 @@
+{
+  "packages": [
+    "php85@latest",
+    "php85Packages.composer@latest",
+    "nodejs_24@latest",
+    "pnpm@latest",
+    "mysql80@latest",
+    "redis@latest",
+    "curl@latest",
+    "jq@latest",
+    "ripgrep@latest"
+  ],
+  "env": {
+    "MYSQL_HOST": "127.0.0.1",
+    "MYSQL_PORT": "3306",
+    "MYSQL_DATABASE": "pizza_planet",
+    "MYSQL_USER": "pizza_planet",
+    "MYSQL_PASSWORD": "pizza_planet",
+    "REDIS_HOST": "127.0.0.1",
+    "REDIS_PORT": "6379"
+  },
+  "shell": {
+    "init_hook": [
+      "echo 'Pizza Planet devbox ready. Run devbox run preflight to verify the toolchain.'"
+    ],
+    "scripts": {
+      "preflight": [
+        "devbox version",
+        "php -v",
+        "composer --version",
+        "node --version",
+        "pnpm --version",
+        "mysql --version",
+        "redis-server --version",
+        "curl --version"
+      ],
+      "services:start": "devbox services start",
+      "services:status": "devbox run services:check",
+      "services:check": [
+        "mysqladmin ping -h 127.0.0.1 -P 3306 -u root",
+        "redis-cli -h 127.0.0.1 -p 6379 ping",
+        "devbox services ls 2>&1 | rg 'queue-worker.*Running'",
+        "curl --fail --silent --show-error http://127.0.0.1:8000/api/health",
+        "curl --fail --silent --show-error --head http://127.0.0.1:5173/"
+      ],
+      "services:stop": "devbox services stop",
+      "db:setup": "mysql -h 127.0.0.1 -P 3306 -u root -e \"CREATE DATABASE IF NOT EXISTS pizza_planet; CREATE USER IF NOT EXISTS 'pizza_planet'@'127.0.0.1' IDENTIFIED BY 'pizza_planet'; CREATE USER IF NOT EXISTS 'pizza_planet'@'localhost' IDENTIFIED BY 'pizza_planet'; GRANT ALL PRIVILEGES ON pizza_planet.* TO 'pizza_planet'@'127.0.0.1'; GRANT ALL PRIVILEGES ON pizza_planet.* TO 'pizza_planet'@'localhost'; FLUSH PRIVILEGES;\"",
+      "backend": "cd backend && ${SHELL:-sh}",
+      "frontend": "cd frontend && ${SHELL:-sh}"
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(backend/*)",
+      "Read(frontend/*)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+
+      "Read(auth.json)",
+      "Read(**/auth.json)",
+      "Read(storage/oauth-*.key)",
+      "Read(**/storage/oauth-*.key)",
+      "Read(storage/*.key)",
+      "Read(**/storage/*.key)",
+      "Read(*secrets*)",
+      "Read(**/*secrets*)",
+      "Read(*credential*)",
+      "Read(**/*credential*)",
+      "Read(*credentials*)",
+      "Read(**/*credentials*)",
+
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
+      "Edit(auth.json)",
+      "Edit(**/auth.json)",
+      "Edit(storage/*.key)",
+      "Edit(**/storage/*.key)",
+      "Edit(*secret*)",
+      "Edit(**/*secret*)",
+      "Edit(*credential*)",
+      "Edit(**/*credential*)"
+    ]
+  }
+}

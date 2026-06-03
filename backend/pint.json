@@ -1,0 +1,13 @@
+{
+    "preset": "psr12",
+    "rules": {
+        "braces_position": false,
+        "class_definition": false,
+        "method_argument_space": {
+            "on_multiline": "ensure_fully_multiline"
+        },
+        "new_with_parentheses": false,
+        "no_multiple_statements_per_line": false,
+        "single_trait_insert_per_statement": false
+    }
+}

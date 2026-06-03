@@ -1,0 +1,20 @@
+# Dependencies
+/vendor/
+/.pnpm-store/
+
+# Devbox
+/.devbox/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDEs / editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

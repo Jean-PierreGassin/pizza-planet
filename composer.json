@@ -1,0 +1,6 @@
+{
+    "license": "proprietary",
+    "require": {
+        "jean-pierre-gassin/ai-context": "^0.1.0"
+    }
+}
