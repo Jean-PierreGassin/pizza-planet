@@ -32,7 +32,7 @@ Run the backend setup script from `backend/`:
 composer run-script setup
 ```
 
-That script installs Composer dependencies, creates `.env` if needed, generates the app key, runs migrations, and seeds the local demo data.
+That script installs Composer dependencies, creates `.env` if needed, generates the app key, wipes and rebuilds the database schema, and seeds the local demo data.
 
 For backend-only work after setup, you can run:
 
