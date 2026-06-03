@@ -12,13 +12,13 @@ This work does not include frontend updates, website receiver implementation, se
 
 - [ ] Item statuses can only move through `pending -> preparing -> baking -> ready`.
 - [ ] Skipped, backwards, duplicate, and terminal item transitions are rejected before persistence.
-- [ ] Item status changes are made through a single service path that updates `order_items`, appends `item_status_events`, and creates `order_item_sync_events` in one transaction.
-- [ ] Item and order finalized webhook jobs are queued only after the surrounding database transaction commits.
-- [ ] Website webhook calls are signed, timestamped, tagged, and configured without exposing secrets.
-- [ ] Webhook delivery attempts, success, retry failure, and final failure update durable sync event state.
+- [ ] Item status changes are made through a single service path that updates `order_items`, appends `order_item_status_events`, and creates `webhook_sync_events` in one transaction.
+- [x] Item and order status webhook jobs are queued only after the surrounding database transaction commits.
+- [x] Website webhook calls are signed, timestamped, tagged, and configured without exposing secrets.
+- [x] Webhook delivery attempts, success, retry failure, and final failure update durable sync event state.
 - [ ] Pickup orders finalize to `ready_for_pickup` and delivery orders finalize to `ready_for_delivery` when all items are ready.
 - [ ] Parent order finalization is protected by row locks plus uniqueness constraints and cannot create duplicate finalized events under retries or concurrency.
-- [ ] Order finalization reuses the existing item status event and item sync ledger unless implementation proves extra persistence is required.
+- [ ] Order finalization appends `order_status_events` and creates `webhook_sync_events` rows without a separate order-specific sync table.
 - [ ] PHPUnit coverage verifies allowed/rejected transitions, rollback behavior, event dispatch, webhook queueing, delivery ledger updates, finalization rules, and duplicate prevention.
 - [ ] Backend webhook setup is documented in `backend/WEBHOOK-README.md` and linked from the root and backend READMEs.
 - [ ] `composer test` and `composer analyse` pass from `backend/`.
@@ -61,20 +61,20 @@ Implementation process to document:
 
 Goal:
 
-Confirm whether the existing order, order item, item status event, and item sync event schema can support the orchestration workflow without adding extra tables.
+Confirm whether the existing order, order item, item status event, and sync event schema can support the orchestration workflow without adding duplicate order-specific sync tables.
 
 Planning context to extract:
 
-- [x] Inspect existing migrations for `orders`, `order_items`, `item_status_events`, and `order_item_sync_events`.
-- [x] Inspect `Order`, `OrderItem`, `ItemStatusEvent`, and `OrderItemSyncEvent` relationships and casts.
+- [x] Inspect existing migrations for `orders`, `order_items`, `order_item_status_events`, `order_status_events`, and `webhook_sync_events`.
+- [x] Inspect `OrderModel`, `OrderItemModel`, `UserModel`, `OrderItemStatusEventModel`, `OrderStatusEventModel`, and `WebhookSyncEventModel` relationships and casts.
 - [x] Inspect existing factories and architecture tests before extending them.
 
 Required decisions:
 
-- [x] Do not add `order_status_events`, `order_sync_events`, or a generalized `sync_events` table in Phase 2.
-- [x] Use the existing `item_status_events` record created by the final item transition as the durable source for item status and parent-order finalization side effects.
-- [x] Use the existing `order_item_sync_events` delivery ledger for queued website sync work in this phase.
-- [x] Defer any schema expansion until implementation proves the existing tables cannot carry a required behavior safely.
+- [x] Do not add a separate `order_sync_events` table.
+- [x] Use `order_item_status_events` for item status history and `order_status_events` for parent order status history.
+- [x] Use a neutral `webhook_sync_events` delivery ledger for queued website sync work in this phase.
+- [x] Expand the schema only where shared naming avoids conflating order item status and order status concepts.
 - [x] Keep payloads minimal and avoid storing customer, payment, credential, or environment data.
 
 Implementation process to document:
@@ -100,12 +100,12 @@ Required decisions:
 - [x] Place transition graph rules in `OrderItemStatusTransitionValidatorService`, not the request class.
 - [x] Use repositories for row-locking lookups and persistence appends.
 - [x] Lock and reload the order item before checking the current status.
-- [x] Dispatch `OrderItemStatusChangedEvent` after commit with persisted IDs only.
+- [x] Dispatch `OrderItemStatusChangedEvent` after commit with persisted Eloquent models.
 - [x] Keep `OrderItemStatusController` thin and return a stable JSON response.
 - [x] Use request and repository DTOs so route payloads and locked transition state are not passed around as raw values.
 - [x] Keep webhook URL and payload construction in webhook-focused services.
 - [x] Add a formatter check that enforces fully multiline method arguments.
-- [x] Suffix new controller, repository, service, event, and DTO classes by layer type.
+- [x] Suffix new controller, repository, service, event, DTO, and Eloquent model classes by layer type.
 
 Implementation process to document:
 
@@ -131,7 +131,7 @@ Required decisions:
 - [x] Run finalization inside the item transition transaction.
 - [x] Choose final status from `orders.fulfillment_type`, never request input.
 - [x] Treat `ready_for_pickup` and `ready_for_delivery` as terminal finalized statuses for this workflow.
-- [x] Defer finalized-order webhook dispatch until Phase 5, when the existing sync ledger can be extended deliberately for that event type.
+- [x] Defer order status webhook dispatch until Phase 5, when the existing sync ledger can be extended deliberately for that event type.
 
 Implementation process to document:
 
@@ -143,30 +143,30 @@ Implementation process to document:
 
 Goal:
 
-Queue signed item and finalized-order webhooks through Spatie jobs and keep business-level delivery state accurate.
+Queue signed item and order status webhooks through Spatie jobs and keep business-level delivery state accurate.
 
 Planning context to extract:
 
-- [ ] Inspect installed Spatie job base class, webhook call builder, metadata support, and event names.
-- [ ] Inspect Laravel unique job APIs available in the installed Laravel version.
-- [ ] Inspect Redis queue configuration and cache store settings relevant to unique job locks.
+- [x] Inspect installed Spatie job base class, webhook call builder, metadata support, and event names.
+- [x] Inspect Laravel unique job APIs available in the installed Laravel version.
+- [x] Inspect Redis queue configuration and cache store settings relevant to unique job locks.
 
 Required decisions:
 
-- [ ] Build item payloads from `orders`, `order_items`, `item_status_events`, and `order_item_sync_events`.
-- [ ] Build order finalized payloads from `orders`, `item_status_events`, and `order_item_sync_events`.
-- [ ] Use `WebhookEventType` values `order_item.status_updated` and `order.status_finalized`.
-- [ ] Use separate job classes for item and order finalized webhooks if unique IDs or attempt hooks need different metadata.
-- [ ] Increment attempts at send attempt start, not in failure listeners.
-- [ ] Update delivered, failed-attempt, and final-failure state from Spatie webhook events using metadata IDs.
-- [ ] Fail safely when webhook URL or signing secret is missing, without printing secrets.
+- [x] Build item payloads from `orders`, `order_items`, `order_item_status_events`, and `webhook_sync_events`.
+- [x] Build order status payloads from `orders`, `order_status_events`, and `webhook_sync_events`.
+- [x] Use `WebhookEventType` values `order_item.status_updated` and `order.status_changed`.
+- [x] Use `SendOrderStatusWebhookJob` as the base job and override the unique key prefix for item-status webhooks.
+- [x] Increment attempts at send attempt start, not in failure listeners.
+- [x] Update delivered, failed-attempt, and final-failure state from Spatie webhook events using metadata IDs.
+- [x] Fail safely when webhook URL or signing secret is missing, without printing secrets.
 
 Implementation process to document:
 
-- [ ] Document payload field lists and intentionally excluded fields.
-- [ ] Document unique job key choices.
-- [ ] Document Spatie event-to-listener mapping and sync event state transitions.
-- [ ] Document any retry/backoff defaults accepted or overridden.
+- [x] Document payload field lists and intentionally excluded fields.
+- [x] Document unique job key choices.
+- [x] Document Spatie event-to-listener mapping and sync event state transitions.
+- [x] Document any retry/backoff defaults accepted or overridden.
 
 ## Phase 6: End-To-End API And Verification
 
@@ -203,8 +203,8 @@ Implementation process to document:
 - [x] Targeted PHPUnit tests for `OrderItemStatusTransitionValidatorService`
 - [x] Targeted PHPUnit feature tests for item transition persistence and rollback behavior
 - [x] Targeted PHPUnit feature tests for order finalization and duplicate prevention
-- [ ] Targeted PHPUnit tests for webhook payload builders and dispatch services
-- [ ] Targeted PHPUnit tests for webhook job uniqueness and delivery ledger listeners
+- [x] Targeted PHPUnit tests for webhook payload builders and dispatch services
+- [x] Targeted PHPUnit tests for webhook job uniqueness and delivery ledger listeners
 - [x] `git status --short`
 
 # Risks
@@ -223,12 +223,12 @@ Implementation process to document:
 - Sensitive assets: website webhook signing secret, destination URL, queue payloads, delivery error text, order references, and persisted status history.
 - User-controlled input: requested order ID, order item ID, and item status.
 - Trust boundaries: API request to backend, backend transaction to queue, queue worker to external website webhook endpoint, Spatie webhook events back to application listeners.
-- Required mitigations: enum validation at the request boundary, transition validation in the service layer, persisted IDs in events/jobs, minimal payloads, HMAC signing, timestamp headers, HTTPS URL expectation outside local development, no secret logging, and database uniqueness for finalization idempotency.
+- Required mitigations: enum validation at the request boundary, transition validation in the service layer, serialized Eloquent models in Laravel events, metadata IDs in webhook jobs, minimal payloads, HMAC signing, timestamp headers, HTTPS URL expectation outside local development, no secret logging, and database uniqueness for finalization idempotency.
 - Verification path: tests for rejected transitions, missing config, payload contents, after-commit dispatch, metadata-based ledger updates, and duplicate finalization prevention.
 
 # Open Questions
 
 - Should missing website webhook config reject the status update, or should it persist the status and mark the sync event failed without queueing? Current recommendation: reject before persistence if the integration is required for reliable sync.
-- Should item-level sync events receive an additional uniqueness constraint, and if so should it be keyed by `item_status_event_id` only or by denormalized item/status fields?
+- Should webhook sync events receive additional business-key uniqueness constraints beyond status-event foreign key plus event type?
 - Should webhook unique job keys use business keys like `order_item_id:to_status` and `order_id:final_status`, or stricter sync event IDs? Current recommendation: use sync event IDs if replaying the same transition event matters more than suppressing all duplicate active jobs for the same status.
 - Is authentication/authorization for the POS status update endpoint in scope for this phase, or will it be handled by a separate backend auth plan?

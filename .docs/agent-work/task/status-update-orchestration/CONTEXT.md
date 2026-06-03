@@ -20,16 +20,16 @@ Implementation is now in progress on the approved phases.
   - Reason: `.docs/backend/ARCHITECTURE.md` defines request classes for validation, thin controllers, services for business logic, and repositories for persistence.
   - Date: 2026-06-03
 
-- Decision: Do not add domain-specific `order_status_events` or `order_sync_events` tables.
-  - Reason: The existing item status events and order item sync ledger already support the current sender-side workflow, and extra order-level tables would duplicate concepts before a concrete gap exists.
+- Decision: Do not add a domain-specific `order_sync_events` table.
+  - Reason: A neutral `webhook_sync_events` ledger supports item and order status webhook delivery without duplicating sync-table concepts.
   - Date: 2026-06-03
 
 - Decision: Treat webhook queueing as an after-commit side effect.
   - Reason: Queue jobs must not run before status, event, and sync records are committed.
   - Date: 2026-06-03
 
-- Decision: Use persisted IDs only in domain events.
-  - Reason: Request data should not be the source of truth for webhook payloads or delivery state.
+- Decision: Use persisted Eloquent models in Laravel domain events.
+  - Reason: Laravel serializes Eloquent models automatically, and request data should not be the source of truth for webhook payloads or delivery state.
   - Date: 2026-06-03
 
 - Decision: Use the security-review workflow during planning.
@@ -52,16 +52,16 @@ Implementation is now in progress on the approved phases.
   - Reason: The application needs config keys for the integration, but project safety rules prohibit committing real secrets or local environment values.
   - Date: 2026-06-03
 
-- Decision: Do not add order-level sync or status tables in Phase 2.
-  - Reason: Order finalization happens as a side effect of an item status transition, and the existing `item_status_events` plus `order_item_sync_events` tables already provide a persisted status event and durable delivery ledger for the sender-side workflow.
+- Decision: Add `order_status_events` and use a neutral `webhook_sync_events` table instead of item-specific sync naming.
+  - Reason: Order finalization happens as a side effect of an item status transition, but it is still an order status transition and should not be represented as an item status event.
   - Date: 2026-06-03
 
 - Decision: Use a singleton resource route for `order-item-status`.
   - Reason: The frontend sends the order and order item IDs in the request body, and the endpoint can still grow to support additional resource operations such as `show`.
   - Date: 2026-06-03
 
-- Decision: Have `UpdateOrderItemStatusRequest` validate body `order_id`, `order_item_id`, and `status`, then construct `UpdateOrderItemStatusDTO`.
-  - Reason: The frontend should send the IDs it is updating, missing records should fail request validation before entering the controller/service path, and the controller should pass a DTO instead of route strings and raw payload arrays.
+- Decision: Have `UpdateOrderItemStatusRequest` validate body `order_id`, `order_item_id`, and `status`, then expose typed accessors for the controller.
+  - Reason: The frontend should send the IDs it is updating, missing records should fail request validation before entering the controller/service path, and a separate request DTO adds no value for three validated fields.
   - Date: 2026-06-03
 
 - Decision: Have `OrderItemRepository` construct `OrderItemStatusTransitionDTO` after locking the item row by both order ID and item ID.
@@ -89,7 +89,7 @@ Implementation is now in progress on the approved phases.
   - Date: 2026-06-03
 
 - Decision: Suffix new class names by layer type.
-  - Reason: Controllers, repositories, services, events, and DTOs should follow the app convention with explicit suffixes such as `Service`, `Repository`, `Event`, and `DTO`.
+  - Reason: Controllers, repositories, services, events, DTOs, and Eloquent models should follow explicit suffixes such as `Service`, `Repository`, `Event`, `DTO`, and `Model`.
   - Date: 2026-06-03
 
 - Decision: Add `backend/WEBHOOK-README.md` and link it from the root and backend READMEs.
@@ -113,11 +113,59 @@ Implementation is now in progress on the approved phases.
   - Date: 2026-06-03
 
 - Decision: Treat `ready_for_pickup` and `ready_for_delivery` as already-finalized statuses.
-  - Reason: The workflow should not rewrite a finalized order or create duplicate finalized webhook work when a retry reaches the final-item-ready path again.
+  - Reason: The workflow should not rewrite an order status or create duplicate order status webhook work when a retry reaches the final-item-ready path again.
   - Date: 2026-06-03
 
-- Decision: Defer a separate `OrderStatusFinalized` dispatch until Phase 5.
-  - Reason: Phase 2 intentionally avoided order-level status/sync tables, so finalized-order webhook delivery should be designed alongside the existing sync-ledger extension rather than added as a partial event without durable delivery state.
+- Decision: Defer a separate order-status transition dispatch until Phase 5.
+  - Reason: Phase 2 intentionally avoided order-level status/sync tables, so order status webhook delivery should be designed alongside the existing sync-ledger extension rather than added as a partial event without durable delivery state.
+  - Date: 2026-06-03
+
+- Decision: Rename the delivery ledger to `webhook_sync_events` and include `event_type`.
+  - Reason: The ledger represents outbound webhook delivery for both item and order status changes, so the table name should not imply every row belongs to an order item status event.
+  - Date: 2026-06-03
+
+- Decision: Create a second `webhook_sync_events` row for order status webhooks when the final item transition finalizes the parent order.
+  - Reason: Item status and order status webhooks need separate queue metadata, attempts, delivery timestamps, and failure state, and the order row should point to an `order_status_events` source.
+  - Date: 2026-06-03
+
+- Decision: Use `SendOrderStatusWebhookJob` as the base Spatie job and let `SendOrderItemStatusWebhookJob` override only its unique-key prefix.
+  - Reason: The jobs share attempt-start ledger behavior and Spatie delivery mechanics, while the unique prefix still separates item status and order status webhook locks.
+  - Date: 2026-06-03
+
+- Decision: Require both website webhook URL and signing secret before persisting a transition.
+  - Reason: This workflow treats website sync as required reliable delivery, so missing integration config should fail closed and roll back without exposing secret values.
+  - Date: 2026-06-03
+
+- Decision: Rename item status history to `order_item_status_events` and `OrderItemStatusEventModel`.
+  - Reason: The event history belongs to an order item, and the more explicit name aligns the table, model, factory, repository, and sync-event foreign key.
+  - Date: 2026-06-03
+
+- Decision: Suffix persisted Eloquent classes with `Model`.
+  - Reason: Classes such as `OrderStatusEvent` and `WebhookSyncEvent` read as dispatched events without the suffix; `OrderStatusEventModel` and `WebhookSyncEventModel` make the persistence boundary explicit.
+  - Date: 2026-06-03
+
+- Decision: Rename order status event classes to order status transition language.
+  - Reason: The domain event and DTO represent an order status movement, while `order.status_changed` remains the outbound webhook event type.
+  - Date: 2026-06-03
+
+- Decision: Laravel domain events carry Eloquent event models instead of scalar IDs.
+  - Reason: Laravel serializes Eloquent models for queued events, and passing the event models keeps listener code aligned with the domain object being handled.
+  - Date: 2026-06-03
+
+- Decision: Let Laravel event discovery register listeners instead of manual `Event::listen()` calls.
+  - Reason: The installed Laravel app builder enables event discovery by default, and no `#[ListensTo]` attribute exists in this framework version.
+  - Date: 2026-06-03
+
+- Decision: Keep jobs and listeners free of model queries.
+  - Reason: Jobs and listeners should delegate to services, while repositories own model lookups and persistence changes.
+  - Date: 2026-06-03
+
+- Decision: Consolidate Spatie delivery-state listeners into `RecordWebhookDeliveryStateListener`.
+  - Reason: Success, retry failure, and final failure all update the same delivery ledger and can delegate to one service.
+  - Date: 2026-06-03
+
+- Decision: Use `OrderItemStatusTransitionDTO` and `OrderStatusTransitionDTO` only, with `toArray()` for controller responses.
+  - Reason: Separate result DTO names made the flow harder to follow; transition DTOs should describe only transition state, while persisted model side effects stay local to services and repositories.
   - Date: 2026-06-03
 
 ## Discoveries
@@ -148,7 +196,7 @@ Implementation is now in progress on the approved phases.
 
 - Discovery: `OrderStatus` already has `ready_for_pickup` and `ready_for_delivery`.
   - Source: `backend/app/Enums/OrderStatus.php`
-  - Impact: The prerequisite finalized order statuses are already present.
+  - Impact: The prerequisite terminal order statuses are already present.
 
 - Discovery: `OrderItemStatus` already has `pending`, `preparing`, `baking`, and `ready`.
   - Source: `backend/app/Enums/OrderItemStatus.php`
@@ -158,15 +206,15 @@ Implementation is now in progress on the approved phases.
   - Source: `backend/app/Enums/SyncEventStatus.php`
   - Impact: Delivery ledger status values already match the prompt.
 
-- Discovery: Existing tables cover `orders`, `order_items`, `item_status_events`, and `order_item_sync_events`.
-  - Source: `backend/database/migrations/2026_06_03_000000_create_orders_table.php` through `2026_06_03_000003_create_order_item_sync_events_table.php`
-  - Impact: Implementation should reuse the existing tables until a concrete finalization or delivery requirement proves extra persistence is needed.
+- Discovery: Existing tables now cover `orders`, `order_items`, `order_item_status_events`, `order_status_events`, and `webhook_sync_events`.
+  - Source: `backend/database/migrations/2026_06_03_000000_create_orders_table.php` through `2026_06_03_000004_create_webhook_sync_events_table.php`
+  - Impact: Implementation can represent item status history, order status history, and shared webhook delivery state without order-specific sync tables.
 
-- Discovery: Existing item sync events store `destination_url`, `payload`, status, attempts, attempt timestamps, delivery timestamp, last error, and response status.
-  - Source: `backend/database/migrations/2026_06_03_000003_create_order_item_sync_events_table.php`
-  - Impact: The existing ledger can carry website sync delivery state for this phase without adding duplicate order-level sync tables.
+- Discovery: Webhook sync events store source event foreign keys, `event_type`, `destination_url`, `payload`, status, attempts, attempt timestamps, delivery timestamp, last error, and response status.
+  - Source: `backend/database/migrations/2026_06_03_000004_create_webhook_sync_events_table.php`
+  - Impact: The shared ledger can carry website sync delivery state for item and order status webhooks without adding duplicate order-level sync tables.
 
-- Discovery: `Order`, `OrderItem`, `ItemStatusEvent`, and `OrderItemSyncEvent` already use enum casts, fillable attributes, factories, and relationship methods.
+- Discovery: `OrderModel`, `OrderItemModel`, `UserModel`, `OrderItemStatusEventModel`, `OrderStatusEventModel`, and `WebhookSyncEventModel` use enum casts, fillable attributes, factories, and relationship methods.
   - Source: `backend/app/Models`
   - Impact: Phase 2 does not need new models to support the next implementation phase.
 
@@ -222,32 +270,40 @@ Implementation is now in progress on the approved phases.
   - Source: `backend/app/Repositories/OrderItemRepository.php`
   - Impact: Status changes now read the current item row under a database lock and return `OrderItemStatusTransitionDTO` before validating movement.
 
-- Discovery: Phase 3 added repositories for item status events and order item sync events.
-  - Source: `backend/app/Repositories/ItemStatusEventRepository.php` and `backend/app/Repositories/OrderItemSyncEventRepository.php`
+- Discovery: Phase 3 added repositories for item status events and webhook sync events.
+  - Source: `backend/app/Repositories/OrderItemStatusEventRepository.php` and `backend/app/Repositories/WebhookSyncEventRepository.php`
   - Impact: The transition service appends status history and creates durable sync events without direct persistence details in the controller.
 
 - Discovery: Phase 3 builds the initial item webhook payload inside `OrderItemStatusTransitionService`.
   - Source: `backend/app/Services/OrderItemWebhookPayloadBuilderService.php`
   - Impact: Webhook payload shape is separated from transition orchestration earlier than originally planned.
 
-- Discovery: `OrderFulfillmentType` and `OrderStatus` are cast directly on the `Order` model.
-  - Source: `backend/app/Models/Order.php`
+- Discovery: `OrderFulfillmentType` and `OrderStatus` are cast directly on `OrderModel`.
+  - Source: `backend/app/Models/OrderModel.php`
   - Impact: `OrderFinalizationService` can select the final order status from persisted enum state without request input.
 
-- Discovery: Multi-item order tests can use repeated `OrderItem::factory()->for($order)` calls.
+- Discovery: Multi-item order tests can use repeated `OrderItemModel::factory()->for($order)` calls.
   - Source: `backend/tests/Feature/OrderItemStatusTransitionTest.php`
   - Impact: Phase 4 coverage can verify sibling readiness through the existing API test style.
 
-- Discovery: The current schema has no order-level finalization record or uniqueness constraint.
-  - Source: `backend/database/migrations/2026_06_03_000000_create_orders_table.php` through `2026_06_03_000003_create_order_item_sync_events_table.php`
-  - Impact: Phase 4 uses the locked order row plus finalized status guard for idempotency, and Phase 5 must decide how finalized-order webhook work is represented in the existing sync ledger.
+- Discovery: The current schema has an order-level status event record but no separate order-level sync table.
+  - Source: `backend/database/migrations/2026_06_03_000000_create_orders_table.php` through `2026_06_03_000004_create_webhook_sync_events_table.php`
+  - Impact: Phase 4 uses the locked order row plus finalized status guard for idempotency, and Phase 5 represents order status webhook work in the shared webhook ledger.
+
+- Discovery: Laravel unique jobs use `ShouldBeUnique` plus `uniqueId()` and cache locks.
+  - Source: `backend/vendor/laravel/framework/src/Illuminate/Bus/UniqueLock.php`
+  - Impact: Phase 5 uses sync-event-ID-based unique keys so each durable delivery ledger row maps to one active webhook job.
+
+- Discovery: `WebhookCall::useJob()` swaps the internal job instance.
+  - Source: `backend/vendor/spatie/laravel-webhook-server/src/WebhookCall.php`
+  - Impact: Dispatch services reapply package config defaults after selecting the custom job class so HTTP verb, queue, signer, retry, timeout, and SSL settings are present.
 
 ## Changes in Direction
 
-- Change: Do not add order-level sync/status tables.
-  - Previous approach: Add `order_status_events` and `order_sync_events`, then briefly consider a generalized `sync_events` table.
-  - New approach: Keep Phase 2 schema unchanged and use the existing `item_status_events` and `order_item_sync_events` tables for sender-side durability in this phase.
-  - Reason: The existing tables already support the workflow surface needed now, and extra tables would duplicate delivery ledger concepts before the implementation proves they are necessary.
+- Change: Add an order status event table, but not an order-specific sync table.
+  - Previous approach: Reuse the final item status event for parent-order webhook work.
+  - New approach: Keep `order_item_status_events` for item transitions, add `order_status_events` for order transitions, and use `webhook_sync_events` as the shared delivery ledger.
+  - Reason: Reusing item status history for order status changes made the domain confusing, while a shared webhook ledger still avoids duplicated sync tables.
 
 ## Blockers
 
@@ -281,3 +337,15 @@ Implementation is now in progress on the approved phases.
 - Phase 4 verification: `composer format` passed.
 - Phase 4 verification: `composer test` passed with 52 tests and 214 assertions.
 - Phase 4 verification: `composer analyse` passed with 0 PHPStan errors.
+- Phase 5 added `webhook_sync_events` with `event_type` and uses the shared ledger for both `order_item.status_updated` and `order.status_changed` delivery rows.
+- Phase 5 creates order status payloads from the parent order plus an `order_status_events` row, without customer, payment, credential, or environment fields.
+- Phase 5 queues Spatie webhooks from `OrderItemStatusChangedEvent` and `OrderStatusChangedEvent` listeners using serialized Eloquent event models and sync-event metadata.
+- Phase 5 delivery state handling updates `processing`, `delivered`, retry failure details, and final `failed` state from Spatie webhook events.
+- Phase 5 verification: `composer test -- --filter 'OrderItemStatusTransitionTest|OrderItemStatusRequestTest|OrderFinalizationTest'` passed with 25 tests and 208 assertions.
+- Phase 5 verification: `composer test -- --filter 'WebhookDispatchTest|WebhookDeliveryLedgerTest|OrderModelArchitectureTest'` passed with 9 tests and 36 assertions.
+- Phase 5 verification: `composer format:test` passed.
+- Phase 5 verification: `composer test` passed with 59 tests and 271 assertions.
+- Phase 5 verification: `composer analyse` passed with 0 PHPStan errors.
+- Phase 5 refactor verification: `composer format:test` passed.
+- Phase 5 refactor verification: `composer test` passed with 59 tests and 286 assertions.
+- Phase 5 refactor verification: `composer analyse` passed with 0 PHPStan errors.
