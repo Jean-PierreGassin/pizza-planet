@@ -8,7 +8,7 @@ Pizza Planet is a split Laravel and Vue application.
 - [Get up and running](#get-up-and-running)
 - [Demo login](#demo-login)
 - [Checks](#checks)
-- [Integration guides](#integration-guides)
+- [Further reading](#further-reading)
 
 ## Project layout
 
@@ -21,38 +21,34 @@ Pizza Planet is a split Laravel and Vue application.
 
 ## Get up and running
 
-Install Jetify Devbox, then enter the project shell from the repo root:
+Install Jetify Devbox first. Then enter the project shell from the repo root:
 
 ```sh
 devbox shell
 ```
 
-Check that the local toolchain is available:
+Check the toolchain:
 
 ```sh
 devbox run preflight
 ```
 
-On a fresh checkout, complete the app-specific setup in the backend and frontend guides before starting the full service set.
+On a fresh checkout, complete the app-specific setup before checking the full service set. The backend guide starts the local services as part of database setup.
 
-Start MySQL, Redis, the API, the queue worker, and the website:
+- Backend setup: [backend/README.md](backend/README.md)
+- Frontend setup: [frontend/README.md](frontend/README.md)
+
+Make sure MySQL, Redis, the API, the queue worker, and the website are running from the repo root:
 
 ```sh
 devbox run services:start
-devbox run services:check
 ```
 
-Create the local MySQL database and application user:
+Check the full service set:
 
 ```sh
-devbox run db:setup
 devbox run services:check
 ```
-
-App-specific setup and checks:
-
-- [Backend guide](backend/README.md)
-- [Frontend guide](frontend/README.md)
 
 Stop background services when you are finished:
 
@@ -75,16 +71,19 @@ The local seed data creates a demo crew user:
 
 Type those credentials into the frontend login form. The form intentionally does not prefill them.
 
-The seeded demo orders and order items are created when the backend setup script runs. API route details and the Postman import flow are documented in [.docs/backend/routes/API-v1.md](.docs/backend/routes/API-v1.md).
+The seeded demo orders and order items are created when the backend seeders run. API route details and the Postman import flow are documented in [.docs/backend/routes/API-v1.md](.docs/backend/routes/API-v1.md).
 
 ## Checks
 
-Run app-specific checks using each guide:
+Run app-specific checks from each app directory:
 
 - Backend: [backend/README.md](backend/README.md)
 - Frontend: [frontend/README.md](frontend/README.md)
 
-## Integration guides
+## Further reading
 
+- Backend architecture: [.docs/backend/ARCHITECTURE.md](.docs/backend/ARCHITECTURE.md)
+- Frontend architecture: [.docs/frontend/ARCHITECTURE.md](.docs/frontend/ARCHITECTURE.md)
+- Testing conventions: [.docs/WRITING-TESTS.md](.docs/WRITING-TESTS.md)
 - Backend website webhooks: [backend/WEBHOOK-README.md](backend/WEBHOOK-README.md)
 - API v1 routes and Postman import: [.docs/backend/routes/API-v1.md](.docs/backend/routes/API-v1.md)

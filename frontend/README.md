@@ -2,6 +2,14 @@
 
 Vue 3, TypeScript, Tailwind CSS, Vite, Vitest, and ESLint.
 
+Use the root `README.md` first for Devbox, services, and full-repo startup. This guide covers frontend-only setup and commands.
+
+## Contents
+
+- [Setup](#setup)
+- [Checks](#checks)
+- [Scripts](#scripts)
+
 ## Setup
 
 Run commands from `frontend/` inside the project Devbox shell.

@@ -3,8 +3,10 @@
 namespace Database\Seeders;
 
 use App\Enums\OrderFulfillmentType;
-use App\Models\OrderModel;
+use App\Enums\OrderItemStatus;
+use App\Enums\OrderStatus;
 use App\Models\OrderItemModel;
+use App\Models\OrderModel;
 use App\Models\UserModel;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -18,9 +20,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        UserModel::factory()
-            ->mario()
-            ->create();
+        UserModel::query()->updateOrCreate(
+            attributes: ['email' => 'mario@pizzaplanet.test'],
+            values: [
+                'name' => 'Mario',
+                'password' => 'ilovepizza',
+            ],
+        );
 
         $orders = [
             [
@@ -62,22 +68,22 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($orders as $orderData) {
-            $factory = OrderModel::factory()
-                ->pending()
-                ->state(['reference' => $orderData['reference']]);
-
-            $factory = $orderData['fulfillment_type'] === OrderFulfillmentType::Delivery
-                ? $factory->delivery()
-                : $factory->pickup();
-
-            $order = $factory->create();
+            $order = OrderModel::query()->updateOrCreate(
+                attributes: ['reference' => $orderData['reference']],
+                values: [
+                    'fulfillment_type' => $orderData['fulfillment_type'],
+                    'status' => OrderStatus::Pending,
+                ],
+            );
 
             foreach ($orderData['items'] as $itemName) {
-                OrderItemModel::factory()
-                    ->for($order, 'order')
-                    ->named($itemName)
-                    ->pending()
-                    ->create();
+                OrderItemModel::query()->updateOrCreate(
+                    attributes: [
+                        'order_id' => $order->id,
+                        'name' => $itemName,
+                    ],
+                    values: ['status' => OrderItemStatus::Pending],
+                );
             }
         }
     }
