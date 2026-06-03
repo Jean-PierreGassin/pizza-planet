@@ -126,6 +126,24 @@ The final order status should be selected from persisted order state, not from r
 
 Only finalize once. If the order is already in a finalized status, do not create duplicate order status events or duplicate order finalized sync events.
 
+Use both application-level locking and database constraints to protect finalization:
+
+```text
+Lock the parent order row before checking sibling item statuses.
+Check all sibling order items inside the same transaction.
+Create the order finalized status/sync records inside the same transaction.
+Add a unique constraint that makes duplicate finalized order events impossible.
+```
+
+Suggested constraints:
+
+```text
+order_status_events unique(order_id, to_status)
+order_sync_events unique(order_id, event_type, to_status)
+```
+
+If the phase plan chooses a generalized sync event table instead of `order_sync_events`, add the equivalent uniqueness rule there.
+
 The finalized order status must also send a webhook to the website.
 
 Use a separate order-level event type:
@@ -162,6 +180,8 @@ Begin transaction
   Create item_status_events record
   Create order_item_sync_events record
   If item is now ready and all order items are ready:
+    Lock parent order row
+    Check sibling item statuses inside the same transaction
     Update orders.status to ready_for_pickup or ready_for_delivery
     Create order status event record
     Create order finalized sync event record
@@ -170,7 +190,7 @@ Dispatch OrderItemStatusChanged after commit
 Dispatch OrderStatusFinalized after commit when the order was finalized
 ```
 
-Row locking matters because two parallel requests should not both read the same current status and create conflicting status transitions.
+Row locking matters because two parallel requests should not both read the same current status and create conflicting status transitions. The item row lock protects item status changes. The parent order row lock serializes finalization decisions for the same order.
 
 The webhook queue dispatch must happen after commit. Prefer explicit after-commit dispatch for this workflow rather than changing the global Redis queue connection unless the phase plan chooses that as an intentional repo-wide config change.
 
@@ -230,7 +250,7 @@ Dispatch domain event after commit.
 
 `OrderItemWebhookDispatchService` wraps `Spatie\WebhookServer\WebhookCall` and supplies the URL, payload, secret, timestamp option, metadata, and tags.
 
-`OrderFinalizationService` checks whether all items in the order are ready, selects the finalized `OrderStatus`, updates the order, creates the order-level status/sync records, and returns whether an order finalization occurred.
+`OrderFinalizationService` checks whether all items in the order are ready, selects the finalized `OrderStatus`, updates the order, creates the order-level status/sync records, and returns whether an order finalization occurred. It must run inside the status transition transaction after the parent order has been locked.
 
 `OrderFinalizedWebhookPayloadBuilder` builds the finalized order webhook payload from persisted records only.
 
@@ -275,6 +295,8 @@ last_error
 `OrderStatusEventRepository` should append order-level finalized status records if the phase chooses an order-level status event table.
 
 `OrderSyncEventRepository` should create and update the delivery ledger for order-level finalized status webhooks if the phase chooses domain-specific sync tables.
+
+The order-level repositories should rely on database uniqueness for duplicate protection. Application checks are useful for friendly control flow, but the database constraint should be the final guardrail.
 
 ### Events
 
@@ -589,6 +611,8 @@ Delivery orders finalize to ready_for_delivery.
 Order finalization creates exactly one order-level sync event.
 Order finalization queues the finalized order status webhook.
 Order finalization is not duplicated when the last-item-ready path is retried.
+Concurrent final item updates cannot create duplicate finalized order events.
+Database uniqueness prevents duplicate finalized order sync records.
 ```
 
 Run:
@@ -613,6 +637,7 @@ Dispatching before commit can queue a job that cannot see the records it needs.
 Direct model updates can bypass transition rules and skip sync events.
 Attempt counts can drift if incremented in multiple places.
 Unique job locks need a shared cache store in multi-worker or multi-host deployments.
+Missing order-level uniqueness constraints can allow duplicate finalized webhooks during concurrent updates.
 Spatie final failure events must update order_item_sync_events or business reporting will drift.
 Order finalized webhooks need their own delivery ledger; reusing item sync events without a schema decision will blur the domain model.
 Receiver-side replay and stale-event protection are not solved by the sender alone.
@@ -638,6 +663,8 @@ Service creates item_status_events
 Service creates order_item_sync_events
   |
 If every item is ready, service finalizes order status as ready_for_pickup or ready_for_delivery
+  |
+Repository locks parent order and service rechecks sibling items
   |
 Service creates order-level finalized status/sync records
   |
