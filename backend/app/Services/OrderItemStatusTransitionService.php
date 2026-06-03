@@ -20,6 +20,7 @@ class OrderItemStatusTransitionService
         private readonly ItemStatusEventRepository $itemStatusEvents,
         private readonly OrderItemSyncEventRepository $syncEvents,
         private readonly OrderItemStatusTransitionValidatorService $transitionValidator,
+        private readonly OrderFinalizationService $orderFinalization,
         private readonly OrderItemWebhookPayloadBuilderService $payloadBuilder,
         private readonly WebsiteWebhookConfigurationService $webhookConfiguration,
     ) {
@@ -36,6 +37,7 @@ class OrderItemStatusTransitionService
             $itemStatusEvent = $this->recordStatusEvent($transition);
             $syncEvent = $this->createSyncEvent($transition, $itemStatusEvent);
 
+            $this->orderFinalization->finalizeIfReady($transition);
             $this->dispatchAfterCommit($itemStatusEvent, $syncEvent);
 
             return $this->buildResult($transition, $itemStatusEvent, $syncEvent);

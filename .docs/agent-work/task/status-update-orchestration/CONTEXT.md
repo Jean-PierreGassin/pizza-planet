@@ -100,6 +100,26 @@ Implementation is now in progress on the approved phases.
   - Reason: It wraps the existing backend PHP runtime in a discoverable project command and produces a high-entropy 64-character hex secret without requiring extra tools.
   - Date: 2026-06-03
 
+- Decision: Add `OrderFinalizationService` and `OrderRepository` for parent-order finalization.
+  - Reason: Finalization needs its own parent-row lock, sibling status check, persisted fulfillment-type decision, and order status update while keeping `OrderItemStatusTransitionService` focused on orchestration.
+  - Date: 2026-06-03
+
+- Decision: Have `OrderRepository::findForFinalization()` return `OrderItemStatusTransitionDTO` with the locked parent order.
+  - Reason: Row-locking repository lookups should hand services typed transition state, and the existing item status transition DTO already carries the order, item, from-status, and to-status needed for finalization.
+  - Date: 2026-06-03
+
+- Decision: Finalize parent orders inside the existing item status transition transaction.
+  - Reason: The item status, item status event, item sync event, sibling readiness check, and parent order status update should commit or roll back together.
+  - Date: 2026-06-03
+
+- Decision: Treat `ready_for_pickup` and `ready_for_delivery` as already-finalized statuses.
+  - Reason: The workflow should not rewrite a finalized order or create duplicate finalized webhook work when a retry reaches the final-item-ready path again.
+  - Date: 2026-06-03
+
+- Decision: Defer a separate `OrderStatusFinalized` dispatch until Phase 5.
+  - Reason: Phase 2 intentionally avoided order-level status/sync tables, so finalized-order webhook delivery should be designed alongside the existing sync-ledger extension rather than added as a partial event without durable delivery state.
+  - Date: 2026-06-03
+
 ## Discoveries
 
 - Discovery: The current worktree is on `dev` tracking `origin/dev`, and `.docs/agent-work/prompts/status-update-orchestration-plan.md` is already modified.
@@ -210,6 +230,18 @@ Implementation is now in progress on the approved phases.
   - Source: `backend/app/Services/OrderItemWebhookPayloadBuilderService.php`
   - Impact: Webhook payload shape is separated from transition orchestration earlier than originally planned.
 
+- Discovery: `OrderFulfillmentType` and `OrderStatus` are cast directly on the `Order` model.
+  - Source: `backend/app/Models/Order.php`
+  - Impact: `OrderFinalizationService` can select the final order status from persisted enum state without request input.
+
+- Discovery: Multi-item order tests can use repeated `OrderItem::factory()->for($order)` calls.
+  - Source: `backend/tests/Feature/OrderItemStatusTransitionTest.php`
+  - Impact: Phase 4 coverage can verify sibling readiness through the existing API test style.
+
+- Discovery: The current schema has no order-level finalization record or uniqueness constraint.
+  - Source: `backend/database/migrations/2026_06_03_000000_create_orders_table.php` through `2026_06_03_000003_create_order_item_sync_events_table.php`
+  - Impact: Phase 4 uses the locked order row plus finalized status guard for idempotency, and Phase 5 must decide how finalized-order webhook work is represented in the existing sync ledger.
+
 ## Changes in Direction
 
 - Change: Do not add order-level sync/status tables.
@@ -241,3 +273,11 @@ Implementation is now in progress on the approved phases.
 - Phase 3 added the item transition API, validator, service, repositories, domain event, and focused tests.
 - Phase 3 verification: `composer test` passed with 27 tests and 61 assertions.
 - Phase 3 verification: `composer analyse` passed with 0 PHPStan errors.
+- Phase 4 added parent-order finalization inside the item transition transaction.
+- Phase 4 finalization locks the parent order row before checking sibling item readiness.
+- Phase 4 selects `ready_for_pickup` or `ready_for_delivery` from `orders.fulfillment_type`.
+- Phase 4 split feature coverage into transition persistence, request validation, and order finalization test classes.
+- Phase 4 verification: `composer test -- --filter 'OrderItemStatusTransitionTest|OrderItemStatusRequestTest|OrderFinalizationTest'` passed with 24 tests and 170 assertions.
+- Phase 4 verification: `composer format` passed.
+- Phase 4 verification: `composer test` passed with 52 tests and 214 assertions.
+- Phase 4 verification: `composer analyse` passed with 0 PHPStan errors.
