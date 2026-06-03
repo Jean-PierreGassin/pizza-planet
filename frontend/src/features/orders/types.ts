@@ -1,20 +1,29 @@
-export type OrderStatus =
-  | 'pending'
-  | 'in_progress'
-  | 'ready_for_pickup'
-  | 'ready_for_delivery'
-  | 'completed'
-  | 'cancelled'
+export const orderStatuses = {
+  pending: 'pending',
+  inProgress: 'in_progress',
+  readyForPickup: 'ready_for_pickup',
+  readyForDelivery: 'ready_for_delivery',
+  completed: 'completed',
+  cancelled: 'cancelled'
+} as const
 
-export type OrderFulfillmentType =
-  | 'pickup'
-  | 'delivery'
+export type OrderStatus = typeof orderStatuses[keyof typeof orderStatuses]
 
-export type OrderItemStatus =
-  | 'pending'
-  | 'preparing'
-  | 'baking'
-  | 'ready'
+export const orderFulfillmentTypes = {
+  pickup: 'pickup',
+  delivery: 'delivery'
+} as const
+
+export type OrderFulfillmentType = typeof orderFulfillmentTypes[keyof typeof orderFulfillmentTypes]
+
+export const orderItemStatuses = {
+  pending: 'pending',
+  preparing: 'preparing',
+  baking: 'baking',
+  ready: 'ready'
+} as const
+
+export type OrderItemStatus = typeof orderItemStatuses[keyof typeof orderItemStatuses]
 
 export interface Order {
   id: number

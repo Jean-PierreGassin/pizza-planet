@@ -1,99 +1,37 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { ApiError } from '@/shared/api'
-import { authApi } from '@/features/auth/api/authApi'
-import type { AuthenticatedUser, LoginCredentials } from '@/features/auth/types'
+import { computed } from 'vue'
 import LoginPanel from '@/features/auth/components/LoginPanel.vue'
-import { ordersApi } from '@/features/orders/api/ordersApi'
-import type { Order, OrderItem, OrderItemStatus } from '@/features/orders/types'
+import { useSessionLogin } from '@/features/auth/composables/useSessionLogin'
 import OrdersDashboard from '@/features/orders/components/OrdersDashboard.vue'
+import { useOrders } from '@/features/orders/composables/useOrders'
 
-const credentials = ref<LoginCredentials>({
-  email: '',
-  password: ''
-})
+const {
+  credentials,
+  errorMessage: sessionErrorMessage,
+  isAuthenticated,
+  isLoggingIn,
+  login,
+  logout: endSession,
+  user
+} = useSessionLogin()
 
-const user = ref<AuthenticatedUser | null>(null)
-const orders = ref<Order[]>([])
-const isLoggingIn = ref(false)
-const isLoadingOrders = ref(false)
-const transitioningItemId = ref<number | null>(null)
-const errorMessage = ref('')
+const {
+  errorMessage: orderErrorMessage,
+  isLoadingOrders,
+  loadOrders,
+  moveItemForward,
+  orders,
+  resetOrders,
+  transitioningItemId
+} = useOrders()
 
-const isAuthenticated = computed(() => user.value !== null)
-
-async function login (): Promise<void> {
-  errorMessage.value = ''
-  isLoggingIn.value = true
-
-  try {
-    await authApi.csrfCookie()
-    user.value = (await authApi.login({
-      email: credentials.value.email,
-      password: credentials.value.password
-    })).user
-    credentials.value.password = ''
-    await loadOrders()
-  } catch (error) {
-    errorMessage.value = isUnauthenticated(error)
-      ? 'Those credentials did not open the prep station.'
-      : 'Login failed. Check the API is running and try again.'
-  } finally {
-    isLoggingIn.value = false
-  }
-}
+const dashboardErrorMessage = computed(() => (
+  sessionErrorMessage.value || orderErrorMessage.value
+))
 
 async function logout (): Promise<void> {
-  await authApi.logout()
-  user.value = null
-  orders.value = []
-  credentials.value.email = ''
-  credentials.value.password = ''
-}
-
-async function loadOrders (): Promise<void> {
-  isLoadingOrders.value = true
-
-  try {
-    orders.value = (await ordersApi.list()).orders
-  } finally {
-    isLoadingOrders.value = false
-  }
-}
-
-async function moveItemForward (order: Order, item: OrderItem): Promise<void> {
-  const nextStatus = nextItemStatus(item.status)
-
-  if (nextStatus === null) {
-    return
-  }
-
-  transitioningItemId.value = item.id
-  errorMessage.value = ''
-
-  try {
-    const result = await ordersApi.updateItemStatus(order.id, item.id, nextStatus)
-    item.status = result.status
-  } catch {
-    errorMessage.value = 'That item could not move to the next station yet.'
-  } finally {
-    transitioningItemId.value = null
-  }
-}
-
-function nextItemStatus (status: OrderItemStatus): OrderItemStatus | null {
-  const transitions: Record<OrderItemStatus, OrderItemStatus | null> = {
-    pending: 'preparing',
-    preparing: 'baking',
-    baking: 'ready',
-    ready: null
-  }
-
-  return transitions[status]
-}
-
-function isUnauthenticated (error: unknown): boolean {
-  return error instanceof ApiError && [401, 422].includes(error.status)
+  await endSession()
+  resetOrders()
 }
 </script>
 
@@ -121,14 +59,14 @@ function isUnauthenticated (error: unknown): boolean {
       <LoginPanel
         v-if="!isAuthenticated"
         v-model="credentials"
-        :error-message="errorMessage"
+        :error-message="sessionErrorMessage"
         :is-logging-in="isLoggingIn"
-        @submit="login"
+        @submit="login(loadOrders)"
       />
 
       <OrdersDashboard
         v-else-if="user !== null"
-        :error-message="errorMessage"
+        :error-message="dashboardErrorMessage"
         :is-loading-orders="isLoadingOrders"
         :orders="orders"
         :transitioning-item-id="transitioningItemId"

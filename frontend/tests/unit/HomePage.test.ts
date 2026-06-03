@@ -93,6 +93,46 @@ describe('HomePage', () => {
     expect(wrapper.text()).toContain('Galactic Garlic Knots')
   })
 
+  it('keeps the user authenticated when initial order loading fails', async () => {
+    vi.mocked(ordersApi.list).mockRejectedValue(new Error('Orders unavailable'))
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [await createTestRouter()]
+      }
+    })
+
+    await vi.dynamicImportSettled()
+    await wrapper.get('input[name="email"]').setValue('mario@pizzaplanet.test')
+    await wrapper.get('input[name="password"]').setValue('ilovepizza')
+    await wrapper.get('form').trigger('submit')
+    await vi.dynamicImportSettled()
+
+    expect(wrapper.text()).toContain('Welcome back, Mario.')
+    expect(wrapper.text()).toContain('Orders could not load. Check the API is running and refresh.')
+    expect(wrapper.text()).not.toContain('Login failed.')
+  })
+
+  it('clears local auth state when server logout fails', async () => {
+    vi.mocked(authApi.logout).mockRejectedValue(new Error('Session already expired'))
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [await createTestRouter()]
+      }
+    })
+
+    await vi.dynamicImportSettled()
+    await wrapper.get('input[name="email"]').setValue('mario@pizzaplanet.test')
+    await wrapper.get('input[name="password"]').setValue('ilovepizza')
+    await wrapper.get('form').trigger('submit')
+    await vi.dynamicImportSettled()
+    await wrapper.findAll('button').find((button) => button.text() === 'Log out')?.trigger('click')
+    await vi.dynamicImportSettled()
+
+    expect(wrapper.text()).toContain('Sign in to move orders through the kitchen.')
+    expect((wrapper.get('input[name="email"]').element as HTMLInputElement).value).toBe('')
+    expect((wrapper.get('input[name="password"]').element as HTMLInputElement).value).toBe('')
+  })
+
   it('moves an item to its next status', async () => {
     const wrapper = mount(HomePage, {
       global: {

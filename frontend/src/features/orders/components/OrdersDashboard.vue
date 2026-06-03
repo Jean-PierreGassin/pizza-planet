@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AuthenticatedUser } from '@/features/auth/types'
-import type { Order, OrderItem, OrderItemStatus } from '../types'
+import { nextItemLabel, nextItemStatus } from '../statusTransitions'
+import type { Order, OrderItem } from '../types'
 
 defineProps<{
   errorMessage: string
@@ -14,28 +15,6 @@ defineEmits<{
   refresh: []
   moveItemForward: [order: Order, item: OrderItem]
 }>()
-
-function nextItemStatus (status: OrderItemStatus): OrderItemStatus | null {
-  const transitions: Record<OrderItemStatus, OrderItemStatus | null> = {
-    pending: 'preparing',
-    preparing: 'baking',
-    baking: 'ready',
-    ready: null
-  }
-
-  return transitions[status]
-}
-
-function nextItemLabel (status: OrderItemStatus): string {
-  const labels: Record<OrderItemStatus, string> = {
-    pending: 'Start preparing',
-    preparing: 'Start baking',
-    baking: 'Mark ready',
-    ready: 'Ready'
-  }
-
-  return labels[status]
-}
 </script>
 
 <template>
