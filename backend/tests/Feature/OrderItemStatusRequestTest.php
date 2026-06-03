@@ -20,30 +20,25 @@ class OrderItemStatusRequestTest extends TestCase
 
     public function testApiRequiresAuthentication(): void
     {
-        $response = $this->patchJson('/api/order-item-status', [
-            'order_id' => 1,
-            'order_item_id' => 1,
+        $response = $this->patchJson('/api/v1/orders/1/items/1', [
             'status' => OrderItemStatus::Preparing->value,
         ]);
 
         $response->assertUnauthorized();
     }
 
-    public function testApiRejectsMissingOrderItemsBeforeTransition(): void
+    public function testApiRejectsMissingOrderItemsAsMissingResources(): void
     {
         $this->authenticate();
         Event::fake([OrderItemStatusChangedEvent::class, OrderStatusChangedEvent::class]);
 
         $order = OrderModel::factory()->create();
 
-        $response = $this->patchJson('/api/order-item-status', [
-            'order_id' => $order->id,
-            'order_item_id' => 999999,
+        $response = $this->patchJson("/api/v1/orders/{$order->id}/items/999999", [
             'status' => OrderItemStatus::Preparing->value,
         ]);
 
-        $response->assertUnprocessable()
-            ->assertJsonValidationErrors('order_item_id');
+        $response->assertNotFound();
 
         $this->assertDatabaseCount('order_item_status_events', 0);
         $this->assertDatabaseCount('webhook_sync_events', 0);
@@ -62,9 +57,7 @@ class OrderItemStatusRequestTest extends TestCase
             'status' => OrderItemStatus::Pending,
         ]);
 
-        $response = $this->patchJson('/api/order-item-status', [
-            'order_id' => $order->id,
-            'order_item_id' => $item->id,
+        $response = $this->patchJson("/api/v1/orders/{$order->id}/items/{$item->id}", [
             'status' => OrderItemStatus::Preparing->value,
         ]);
 

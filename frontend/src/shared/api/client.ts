@@ -1,21 +1,12 @@
-export class ApiError extends Error {
-  constructor (
-    message: string,
-    public readonly status: number,
-    public readonly response: Response
-  ) {
-    super(message)
-    this.name = 'ApiError'
-  }
-}
+import { ApiError } from './errors'
+import { buildRequest, type ApiRequestOptions } from './request'
+import { buildApiUrl, normalizeApiVersion, normalizeBaseUrl } from './urls'
 
 export interface ApiClientOptions {
   baseUrl?: string
+  apiVersion?: string
+  credentials?: RequestCredentials
   fetcher?: typeof fetch
-}
-
-export interface ApiRequestOptions extends Omit<RequestInit, 'body'> {
-  body?: BodyInit | Record<string, unknown>
 }
 
 export interface ApiClient {
@@ -25,13 +16,17 @@ export interface ApiClient {
 }
 
 const defaultBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000/api'
+const defaultApiVersion = import.meta.env.VITE_API_VERSION ?? 'v1'
 
 export function createApiClient (options: ApiClientOptions = {}): ApiClient {
   const baseUrl = normalizeBaseUrl(options.baseUrl ?? defaultBaseUrl)
+  const apiVersion = normalizeApiVersion(options.apiVersion ?? defaultApiVersion)
+  const credentials = options.credentials ?? 'include'
   const fetcher = options.fetcher ?? fetch
 
   async function request<TResponse> (path: string, options: ApiRequestOptions = {}): Promise<TResponse> {
-    const response = await fetcher(buildUrl(baseUrl, path), buildRequest(options))
+    const requestVersion = normalizeApiVersion(options.apiVersion ?? apiVersion)
+    const response = await fetcher(buildApiUrl(baseUrl, path, requestVersion), buildRequest(options, credentials))
 
     if (!response.ok) {
       throw new ApiError(`API request failed with status ${response.status}`, response.status, response)
@@ -63,57 +58,3 @@ export function createApiClient (options: ApiClientOptions = {}): ApiClient {
 }
 
 export const apiClient = createApiClient()
-
-function normalizeBaseUrl (baseUrl: string): string {
-  return baseUrl.replace(/\/+$/, '')
-}
-
-function buildUrl (baseUrl: string, path: string): string {
-  const normalizedPath = path.replace(/^\/+/, '')
-
-  return `${baseUrl}/${normalizedPath}`
-}
-
-function buildRequest (options: ApiRequestOptions): RequestInit {
-  const headers = new Headers(options.headers)
-  applyDefaultHeaders(headers)
-  const body = buildBody(options.body, headers)
-
-  return {
-    ...options,
-    headers,
-    body
-  }
-}
-
-function applyDefaultHeaders (headers: Headers): void {
-  if (!headers.has('Accept')) {
-    headers.set('Accept', 'application/json')
-  }
-}
-
-function buildBody (body: ApiRequestOptions['body'], headers: Headers): BodyInit | undefined {
-  if (body === undefined) {
-    return undefined
-  }
-
-  if (isBodyInit(body)) {
-    return body
-  }
-
-  if (!headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json')
-  }
-
-  return JSON.stringify(body)
-}
-
-function isBodyInit (body: ApiRequestOptions['body']): body is BodyInit {
-  return typeof body === 'string' ||
-    body instanceof FormData ||
-    body instanceof Blob ||
-    body instanceof URLSearchParams ||
-    body instanceof ArrayBuffer ||
-    ArrayBuffer.isView(body) ||
-    body instanceof ReadableStream
-}
