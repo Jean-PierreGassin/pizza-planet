@@ -121,23 +121,23 @@ Finalize parent orders exactly once when every item is ready, using persisted fu
 
 Planning context to extract:
 
-- [ ] Inspect how `OrderFulfillmentType` and `OrderStatus` are cast and stored.
-- [ ] Inspect sibling item query patterns and factory setup for multi-item order tests.
-- [ ] Identify MySQL constraint behavior for duplicate finalization attempts.
+- [x] Inspect how `OrderFulfillmentType` and `OrderStatus` are cast and stored.
+- [x] Inspect sibling item query patterns and factory setup for multi-item order tests.
+- [x] Identify MySQL constraint behavior for duplicate finalization attempts.
 
 Required decisions:
 
-- [ ] Lock the parent order before checking sibling item statuses.
-- [ ] Run finalization inside the item transition transaction.
-- [ ] Choose final status from `orders.fulfillment_type`, never request input.
-- [ ] Treat `ready_for_pickup` and `ready_for_delivery` as terminal finalized statuses for this workflow.
-- [ ] Dispatch `OrderStatusFinalized` after commit only when a new finalization record was created.
+- [x] Lock the parent order before checking sibling item statuses.
+- [x] Run finalization inside the item transition transaction.
+- [x] Choose final status from `orders.fulfillment_type`, never request input.
+- [x] Treat `ready_for_pickup` and `ready_for_delivery` as terminal finalized statuses for this workflow.
+- [x] Defer finalized-order webhook dispatch until Phase 5, when the existing sync ledger can be extended deliberately for that event type.
 
 Implementation process to document:
 
-- [ ] Document how duplicate-key conflicts are handled without creating duplicate webhooks.
-- [ ] Document pickup versus delivery finalization behavior.
-- [ ] Document concurrency assumptions and any limits of local test coverage.
+- [x] Document how duplicate finalization is handled without creating duplicate webhook work.
+- [x] Document pickup versus delivery finalization behavior.
+- [x] Document concurrency assumptions and any limits of local test coverage.
 
 ## Phase 5: Webhook Payloads, Jobs, And Delivery Ledger
 
@@ -196,16 +196,16 @@ Implementation process to document:
 
 # Verification
 
-- [ ] `cd backend && composer install`
+- [x] `cd backend && composer install`
 - [ ] `cd backend && php artisan migrate`
-- [ ] `cd backend && composer test`
-- [ ] `cd backend && composer analyse`
-- [ ] Targeted PHPUnit tests for `OrderItemStatusTransitionValidatorService`
-- [ ] Targeted PHPUnit feature tests for item transition persistence and rollback behavior
-- [ ] Targeted PHPUnit feature tests for order finalization and duplicate prevention
+- [x] `cd backend && composer test`
+- [x] `cd backend && composer analyse`
+- [x] Targeted PHPUnit tests for `OrderItemStatusTransitionValidatorService`
+- [x] Targeted PHPUnit feature tests for item transition persistence and rollback behavior
+- [x] Targeted PHPUnit feature tests for order finalization and duplicate prevention
 - [ ] Targeted PHPUnit tests for webhook payload builders and dispatch services
 - [ ] Targeted PHPUnit tests for webhook job uniqueness and delivery ledger listeners
-- [ ] `git status --short`
+- [x] `git status --short`
 
 # Risks
 
