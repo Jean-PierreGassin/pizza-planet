@@ -5,6 +5,7 @@ approvals_reviewer = "auto_review"
 # Use this permission profile by default
 default_permissions = "project-edit"
 
+sandbox_mode = "workspace-write"
 [permissions.project-edit]
 description = "Workspace editing, but deny secret files."
 extends = ":workspace"
@@ -23,3 +24,6 @@ glob_scan_max_depth = 6
 "**/*secrets*" = "deny"
 "**/*credential*" = "deny"
 "**/*credentials*" = "deny"
+
+[sandbox_workspace_write]
+network_access = true
