@@ -2,6 +2,8 @@
 
 The backend uses webhooks to notify the website when order item status changes and when a parent order is finalized. This keeps the order workflow durable: the database records the status change first, then Redis queues delivery work, and the website receives a signed event it can verify and apply safely.
 
+The local Devbox service set starts the Laravel queue worker automatically. It processes Redis queues `webhooks` and `default`.
+
 ## Why Webhooks
 
 Order status changes happen in the backend, but the website needs to reflect them without polling constantly. Webhooks let the backend push small event payloads to the website after the relevant database transaction commits.

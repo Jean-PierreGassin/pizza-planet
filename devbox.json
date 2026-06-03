@@ -39,6 +39,7 @@
       "services:check": [
         "mysqladmin ping -h 127.0.0.1 -P 3306 -u root",
         "redis-cli -h 127.0.0.1 -p 6379 ping",
+        "devbox services ls 2>&1 | rg 'queue-worker.*Running'",
         "curl --fail --silent --show-error http://127.0.0.1:8000/api/health",
         "curl --fail --silent --show-error --head http://127.0.0.1:5173/"
       ],

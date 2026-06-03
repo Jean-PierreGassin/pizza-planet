@@ -22,7 +22,7 @@ php artisan key:generate
 php artisan migrate
 ```
 
-Start the backend server from the repo root as part of the Devbox service set:
+Start the backend server and queue worker from the repo root as part of the Devbox service set:
 
 ```sh
 devbox run services:start
@@ -53,6 +53,7 @@ The scaffold exposes these health/status routes:
 
 - Database: MySQL
 - Queue: Redis
+- Queue worker: Devbox service, processing `webhooks` and `default`
 - Redis client: Predis
 - Cache: Database
 
