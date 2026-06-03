@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->string('reference');
+            $table->string('fulfillment_type')->index();
             $table->string('status')->index();
             $table->timestamps();
         });

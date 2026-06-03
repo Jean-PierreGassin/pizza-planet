@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\OrderFulfillmentType;
 use App\Enums\OrderItemStatus;
 use App\Enums\OrderStatus;
 use App\Enums\SyncEventStatus;
@@ -20,6 +21,7 @@ class OrderModelArchitectureTest extends TestCase
     public function testOrderModelsCastStatusesToEnums(): void
     {
         $order = Order::factory()->create([
+            'fulfillment_type' => OrderFulfillmentType::Delivery,
             'status' => OrderStatus::InProgress,
         ]);
         $item = OrderItem::factory()->create([
@@ -33,6 +35,7 @@ class OrderModelArchitectureTest extends TestCase
             'status' => SyncEventStatus::Processing,
         ]);
 
+        $this->assertSame(OrderFulfillmentType::Delivery, $order->fulfillment_type);
         $this->assertSame(OrderStatus::InProgress, $order->status);
         $this->assertSame(OrderItemStatus::Baking, $item->status);
         $this->assertSame(OrderItemStatus::Preparing, $statusEvent->from_status);
