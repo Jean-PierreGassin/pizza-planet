@@ -39,4 +39,20 @@ class DatabaseSeederTest extends TestCase
                 );
             });
     }
+
+    public function testSeederCanRunMoreThanOnce(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertSame(1, UserModel::query()->where('email', 'mario@pizzaplanet.test')->count());
+        $this->assertSame(4, OrderModel::query()->count());
+
+        OrderModel::query()
+            ->with('items')
+            ->get()
+            ->each(function (OrderModel $order): void {
+                $this->assertNotEmpty($order->items);
+            });
+    }
 }
