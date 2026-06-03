@@ -3,19 +3,19 @@
 namespace Database\Factories;
 
 use App\Enums\OrderItemStatus;
-use App\Models\Order;
-use App\Models\OrderItem;
+use App\Models\OrderModel;
+use App\Models\OrderItemModel;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<OrderItem>
+ * @extends Factory<OrderItemModel>
  */
-class OrderItemFactory extends Factory
+class OrderItemModelFactory extends Factory
 {
     public function definition(): array
     {
         return [
-            'order_id' => Order::factory(),
+            'order_id' => OrderModel::factory(),
             'name' => fake()->randomElement([
                 'Margherita',
                 'Pepperoni',
