@@ -2,9 +2,9 @@
 
 ## Summary
 
-This planning pass prepares the backend-only status update orchestration implementation for Pizza Planet. The current backend has Laravel 13, MySQL-backed order/order-item schema, fulfillment and status enums, item status event persistence, item sync event persistence, factories, and basic model architecture tests. It does not yet have controllers, requests, services, repositories, events, listeners, jobs, order-level status/sync tables, or `spatie/laravel-webhook-server`.
+This planning pass prepares the backend-only status update orchestration implementation for Pizza Planet. The current backend has Laravel 13, MySQL-backed order/order-item schema, fulfillment and status enums, item status event persistence, item sync event persistence, factories, and basic model architecture tests. Phase 3 adds the first controller, request, service, repository, and event path for item status transitions.
 
-No implementation code has been changed as part of this planning pass.
+Implementation is now in progress on the approved phases.
 
 ## Decisions
 
@@ -20,8 +20,8 @@ No implementation code has been changed as part of this planning pass.
   - Reason: `.docs/backend/ARCHITECTURE.md` defines request classes for validation, thin controllers, services for business logic, and repositories for persistence.
   - Date: 2026-06-03
 
-- Decision: Prefer domain-specific `order_status_events` and `order_sync_events` tables for order finalization.
-  - Reason: The existing `order_item_sync_events` table is tied to item status events, and the prompt recommends the clearer domain-specific option unless there is a strong reason to generalize.
+- Decision: Do not add domain-specific `order_status_events` or `order_sync_events` tables.
+  - Reason: The existing item status events and order item sync ledger already support the current sender-side workflow, and extra order-level tables would duplicate concepts before a concrete gap exists.
   - Date: 2026-06-03
 
 - Decision: Treat webhook queueing as an after-commit side effect.
@@ -50,6 +50,46 @@ No implementation code has been changed as part of this planning pass.
 
 - Decision: Use placeholder website webhook config in tracked files.
   - Reason: The application needs config keys for the integration, but project safety rules prohibit committing real secrets or local environment values.
+  - Date: 2026-06-03
+
+- Decision: Do not add order-level sync or status tables in Phase 2.
+  - Reason: Order finalization happens as a side effect of an item status transition, and the existing `item_status_events` plus `order_item_sync_events` tables already provide a persisted status event and durable delivery ledger for the sender-side workflow.
+  - Date: 2026-06-03
+
+- Decision: Use a singleton resource route for `order-item-status`.
+  - Reason: The frontend sends the order and order item IDs in the request body, and the endpoint can still grow to support additional resource operations such as `show`.
+  - Date: 2026-06-03
+
+- Decision: Have `UpdateOrderItemStatusRequest` validate body `order_id`, `order_item_id`, and `status`, then construct `UpdateOrderItemStatusDTO`.
+  - Reason: The frontend should send the IDs it is updating, missing records should fail request validation before entering the controller/service path, and the controller should pass a DTO instead of route strings and raw payload arrays.
+  - Date: 2026-06-03
+
+- Decision: Have `OrderItemRepository` construct `OrderItemStatusTransitionDTO` after locking the item row by both order ID and item ID.
+  - Reason: Once persisted state is retrieved, downstream services should receive a DTO containing the locked item plus the from/to statuses instead of re-deriving transition state from model attributes, and mismatched order/item IDs should not update the wrong item.
+  - Date: 2026-06-03
+
+- Decision: Keep enum-shape validation in `UpdateOrderItemStatusRequest` and transition graph validation in `OrderItemStatusTransitionValidatorService`.
+  - Reason: Request validation should verify input shape and record existence, while the domain layer owns the allowed movement from current persisted state to requested target state.
+  - Date: 2026-06-03
+
+- Decision: Throw `InvalidOrderItemStatusTransition` for rejected movement and return HTTP 422 from the controller.
+  - Reason: Invalid movement is user-correctable input, and the API should report it like validation instead of as a server error.
+  - Date: 2026-06-03
+
+- Decision: Dispatch `OrderItemStatusChangedEvent` with `DB::afterCommit()`.
+  - Reason: Laravel event fakes can make fluent `dispatch()->afterCommit()` return null in tests, while `DB::afterCommit()` keeps the after-commit guarantee explicit and testable.
+  - Date: 2026-06-03
+
+- Decision: Move website webhook URL lookup and payload building out of `OrderItemStatusTransitionService`.
+  - Reason: Transition orchestration should not own webhook configuration or payload shape; those belong to webhook-focused services.
+  - Date: 2026-06-03
+
+- Decision: Add `composer format` and `composer format:test` with a Pint config enforcing fully multiline method arguments.
+  - Reason: Long multiline method arguments should be enforced by tooling instead of relying on review comments.
+  - Date: 2026-06-03
+
+- Decision: Suffix new class names by layer type.
+  - Reason: Controllers, repositories, services, events, and DTOs should follow the app convention with explicit suffixes such as `Service`, `Repository`, `Event`, and `DTO`.
   - Date: 2026-06-03
 
 - Decision: Add `backend/WEBHOOK-README.md` and link it from the root and backend READMEs.
@@ -100,11 +140,19 @@ No implementation code has been changed as part of this planning pass.
 
 - Discovery: Existing tables cover `orders`, `order_items`, `item_status_events`, and `order_item_sync_events`.
   - Source: `backend/database/migrations/2026_06_03_000000_create_orders_table.php` through `2026_06_03_000003_create_order_item_sync_events_table.php`
-  - Impact: Implementation should add order-level tables and constraints rather than recreate the existing item tables.
+  - Impact: Implementation should reuse the existing tables until a concrete finalization or delivery requirement proves extra persistence is needed.
 
 - Discovery: Existing item sync events store `destination_url`, `payload`, status, attempts, attempt timestamps, delivery timestamp, last error, and response status.
   - Source: `backend/database/migrations/2026_06_03_000003_create_order_item_sync_events_table.php`
-  - Impact: Order-level sync events should mirror this delivery ledger shape.
+  - Impact: The existing ledger can carry website sync delivery state for this phase without adding duplicate order-level sync tables.
+
+- Discovery: `Order`, `OrderItem`, `ItemStatusEvent`, and `OrderItemSyncEvent` already use enum casts, fillable attributes, factories, and relationship methods.
+  - Source: `backend/app/Models`
+  - Impact: Phase 2 does not need new models to support the next implementation phase.
+
+- Discovery: Existing model architecture tests cover enum casts, delivery-state casts, and relationships.
+  - Source: `backend/tests/Feature/OrderModelArchitectureTest.php`
+  - Impact: Existing coverage remains sufficient for Phase 2 because no new schema/model surface is being added.
 
 - Discovery: `spatie/laravel-webhook-server` is not currently required by `backend/composer.json`.
   - Source: `backend/composer.json`
@@ -146,12 +194,28 @@ No implementation code has been changed as part of this planning pass.
   - Source: `backend/tests/Feature/OrderModelArchitectureTest.php` and `backend/tests/Unit/OrderStatusTypesTest.php`
   - Impact: New tests should extend this coverage rather than replacing it.
 
+- Discovery: The API bootstrap renders JSON for `api/*` exception responses.
+  - Source: `backend/bootstrap/app.php`
+  - Impact: The transition controller can return validation-style 422 responses for rejected transitions.
+
+- Discovery: Phase 3 added `OrderItemRepository::findForStatusTransition()` with `lockForUpdate()`.
+  - Source: `backend/app/Repositories/OrderItemRepository.php`
+  - Impact: Status changes now read the current item row under a database lock and return `OrderItemStatusTransitionDTO` before validating movement.
+
+- Discovery: Phase 3 added repositories for item status events and order item sync events.
+  - Source: `backend/app/Repositories/ItemStatusEventRepository.php` and `backend/app/Repositories/OrderItemSyncEventRepository.php`
+  - Impact: The transition service appends status history and creates durable sync events without direct persistence details in the controller.
+
+- Discovery: Phase 3 builds the initial item webhook payload inside `OrderItemStatusTransitionService`.
+  - Source: `backend/app/Services/OrderItemWebhookPayloadBuilderService.php`
+  - Impact: Webhook payload shape is separated from transition orchestration earlier than originally planned.
+
 ## Changes in Direction
 
-- Change:
-  - Previous approach:
-  - New approach:
-  - Reason:
+- Change: Do not add order-level sync/status tables.
+  - Previous approach: Add `order_status_events` and `order_sync_events`, then briefly consider a generalized `sync_events` table.
+  - New approach: Keep Phase 2 schema unchanged and use the existing `item_status_events` and `order_item_sync_events` tables for sender-side durability in this phase.
+  - Reason: The existing tables already support the workflow surface needed now, and extra tables would duplicate delivery ledger concepts before the implementation proves they are necessary.
 
 ## Blockers
 
@@ -170,3 +234,10 @@ No implementation code has been changed as part of this planning pass.
 - Phase 1 added webhook documentation because config placeholders and secret-generation guidance belong with the dependency/config setup.
 - Phase 1 verification: `composer test` passed with 9 tests and 25 assertions.
 - Phase 1 verification: `composer analyse` passed with 0 PHPStan errors.
+- Phase 2 is now a schema review and planning checkpoint rather than a schema implementation phase.
+- Phase 2 intentionally leaves source schema/model files unchanged.
+- Phase 2 verification after pivot: `composer test` passed with 9 tests and 25 assertions.
+- Phase 2 verification after pivot: `composer analyse` passed with 0 PHPStan errors.
+- Phase 3 added the item transition API, validator, service, repositories, domain event, and focused tests.
+- Phase 3 verification: `composer test` passed with 27 tests and 61 assertions.
+- Phase 3 verification: `composer analyse` passed with 0 PHPStan errors.

@@ -10,6 +10,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property int $order_item_id
+ * @property OrderItemStatus $from_status
+ * @property OrderItemStatus $to_status
+ */
 #[Fillable(['order_item_id', 'from_status', 'to_status'])]
 class ItemStatusEvent extends Model
 {

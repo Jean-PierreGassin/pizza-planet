@@ -10,6 +10,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property string $reference
+ * @property OrderFulfillmentType $fulfillment_type
+ * @property OrderStatus $status
+ */
 #[Fillable(['reference', 'fulfillment_type', 'status'])]
 class Order extends Model
 {
