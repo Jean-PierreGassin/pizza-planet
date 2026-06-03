@@ -3,18 +3,21 @@
 namespace App\Repositories;
 
 use App\DTOs\OrderItemStatusTransitionDTO;
-use App\DTOs\UpdateOrderItemStatusDTO;
 use App\Enums\OrderItemStatus;
-use App\Models\OrderItem;
+use App\Models\OrderItemModel;
 
 class OrderItemRepository
 {
-    public function findForStatusTransition(UpdateOrderItemStatusDTO $data): OrderItemStatusTransitionDTO
+    public function findForStatusTransition(
+        int $orderId,
+        int $orderItemId,
+        OrderItemStatus $status,
+    ): OrderItemStatusTransitionDTO
     {
-        $orderItem = OrderItem::query()
+        $orderItem = OrderItemModel::query()
             ->with('order')
-            ->whereKey($data->orderItemId)
-            ->where('order_id', $data->orderId)
+            ->whereKey($orderItemId)
+            ->where('order_id', $orderId)
             ->lockForUpdate()
             ->firstOrFail();
 
@@ -22,15 +25,25 @@ class OrderItemRepository
             order: $orderItem->order,
             orderItem: $orderItem,
             fromStatus: $orderItem->status,
-            toStatus: $data->status,
+            toStatus: $status,
         );
     }
 
-    public function updateStatus(OrderItem $orderItem, OrderItemStatus $status): OrderItem
+    public function updateStatus(OrderItemStatusTransitionDTO $transition): OrderItemStatusTransitionDTO
     {
-        $orderItem->setAttribute('status', $status);
-        $orderItem->save();
+        $transition->orderItem->setAttribute('status', $transition->toStatus);
+        $transition->orderItem->save();
 
-        return $orderItem;
+        return new OrderItemStatusTransitionDTO(
+            order: $transition->order,
+            orderItem: $transition->orderItem,
+            fromStatus: $transition->fromStatus,
+            toStatus: $transition->toStatus,
+        );
+    }
+
+    public function find(int $id): OrderItemModel
+    {
+        return OrderItemModel::query()->findOrFail($id);
     }
 }

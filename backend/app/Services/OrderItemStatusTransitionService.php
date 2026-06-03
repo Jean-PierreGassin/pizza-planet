@@ -3,83 +3,85 @@
 namespace App\Services;
 
 use App\DTOs\OrderItemStatusTransitionDTO;
-use App\DTOs\OrderItemStatusTransitionResultDTO;
-use App\DTOs\UpdateOrderItemStatusDTO;
+use App\Enums\OrderItemStatus;
 use App\Events\OrderItemStatusChangedEvent;
-use App\Models\ItemStatusEvent;
-use App\Models\OrderItemSyncEvent;
-use App\Repositories\ItemStatusEventRepository;
+use App\Models\OrderItemStatusEventModel;
+use App\Models\WebhookSyncEventModel;
+use App\Repositories\OrderItemStatusEventRepository;
 use App\Repositories\OrderItemRepository;
-use App\Repositories\OrderItemSyncEventRepository;
+use App\Repositories\WebhookSyncEventRepository;
 use Illuminate\Support\Facades\DB;
 
 class OrderItemStatusTransitionService
 {
     public function __construct(
         private readonly OrderItemRepository $orderItems,
-        private readonly ItemStatusEventRepository $itemStatusEvents,
-        private readonly OrderItemSyncEventRepository $syncEvents,
+        private readonly OrderItemStatusEventRepository $orderItemStatusEventModels,
+        private readonly WebhookSyncEventRepository $syncEventModels,
         private readonly OrderItemStatusTransitionValidatorService $transitionValidator,
-        private readonly OrderFinalizationService $orderFinalization,
+        private readonly OrderStatusTransitionService $orderStatuses,
         private readonly OrderItemWebhookPayloadBuilderService $payloadBuilder,
         private readonly WebsiteWebhookConfigurationService $webhookConfiguration,
     ) {
     }
 
-    public function transition(UpdateOrderItemStatusDTO $data): OrderItemStatusTransitionResultDTO
+    public function transition(
+        int $orderId,
+        int $orderItemId,
+        OrderItemStatus $status,
+    ): OrderItemStatusTransitionDTO
     {
-        return DB::transaction(function () use ($data): OrderItemStatusTransitionResultDTO {
-            $transition = $this->orderItems->findForStatusTransition($data);
+        $this->webhookConfiguration->assertConfigured();
 
-            $this->transitionValidator->validate($transition->fromStatus, $transition->toStatus);
-            $this->orderItems->updateStatus($transition->orderItem, $transition->toStatus);
+        return DB::transaction(function () use ($orderId, $orderItemId, $status): OrderItemStatusTransitionDTO {
+            $transition = $this->orderItems->findForStatusTransition(
+                orderId: $orderId,
+                orderItemId: $orderItemId,
+                status: $status,
+            );
 
-            $itemStatusEvent = $this->recordStatusEvent($transition);
-            $syncEvent = $this->createSyncEvent($transition, $itemStatusEvent);
+            $this->transitionValidator->validate(
+                fromStatus: $transition->fromStatus,
+                toStatus: $transition->toStatus,
+            );
+            $transition = $this->orderItems->updateStatus(transition: $transition);
 
-            $this->orderFinalization->finalizeIfReady($transition);
-            $this->dispatchAfterCommit($itemStatusEvent, $syncEvent);
+            $orderItemStatusEventModel = $this->orderItemStatusEventModels->create(transition: $transition);
+            $syncEventModel = $this->createSyncEvent(
+                transition: $transition,
+                orderItemStatusEventModel: $orderItemStatusEventModel,
+            );
 
-            return $this->buildResult($transition, $itemStatusEvent, $syncEvent);
+            $this->orderStatuses->transitionIfReady(orderItemStatusTransition: $transition);
+
+            $this->dispatchAfterCommit(
+                orderItemStatusEventModel: $orderItemStatusEventModel,
+                syncEventModel: $syncEventModel,
+            );
+
+            return $transition;
         });
-    }
-
-    private function recordStatusEvent(OrderItemStatusTransitionDTO $transition): ItemStatusEvent
-    {
-        return $this->itemStatusEvents->create($transition);
     }
 
     private function createSyncEvent(
         OrderItemStatusTransitionDTO $transition,
-        ItemStatusEvent $itemStatusEvent,
-    ): OrderItemSyncEvent {
-        return $this->syncEvents->create(
-            itemStatusEvent: $itemStatusEvent,
+        OrderItemStatusEventModel $orderItemStatusEventModel,
+    ): WebhookSyncEventModel
+    {
+        return $this->syncEventModels->createForOrderItemStatus(
+            orderItemStatusEventModel: $orderItemStatusEventModel,
             destinationUrl: $this->webhookConfiguration->url(),
-            payload: $this->payloadBuilder->build($transition, $itemStatusEvent),
+            payload: $this->payloadBuilder->build(transition: $transition),
         );
     }
 
     private function dispatchAfterCommit(
-        ItemStatusEvent $itemStatusEvent,
-        OrderItemSyncEvent $syncEvent,
+        OrderItemStatusEventModel $orderItemStatusEventModel,
+        WebhookSyncEventModel $syncEventModel,
     ): void {
-        DB::afterCommit(fn () => OrderItemStatusChangedEvent::dispatch(
-            itemStatusEventId: $itemStatusEvent->id,
-            orderItemSyncEventId: $syncEvent->id,
+        DB::afterCommit(fn (): mixed => OrderItemStatusChangedEvent::dispatch(
+            orderItemStatusEventModel: $orderItemStatusEventModel,
+            syncEventModel: $syncEventModel,
         ));
-    }
-
-    private function buildResult(
-        OrderItemStatusTransitionDTO $transition,
-        ItemStatusEvent $itemStatusEvent,
-        OrderItemSyncEvent $syncEvent,
-    ): OrderItemStatusTransitionResultDTO {
-        return new OrderItemStatusTransitionResultDTO(
-            orderItem: $transition->orderItem->refresh(),
-            status: $transition->toStatus,
-            itemStatusEvent: $itemStatusEvent,
-            syncEvent: $syncEvent,
-        );
     }
 }

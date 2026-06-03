@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('order_item_sync_events', function (Blueprint $table) {
+        Schema::create('webhook_sync_events', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('item_status_event_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('order_item_status_event_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('order_status_event_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->string('event_type');
             $table->string('destination_url');
             $table->json('payload');
             $table->string('status');
@@ -21,13 +23,16 @@ return new class extends Migration
             $table->unsignedSmallInteger('response_status')->nullable();
             $table->timestamps();
 
-            $table->index('item_status_event_id');
+            $table->index('order_item_status_event_id');
+            $table->index('order_status_event_id');
             $table->index(['status', 'last_attempted_at']);
+            $table->unique(['order_item_status_event_id', 'event_type']);
+            $table->unique(['order_status_event_id', 'event_type']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('order_item_sync_events');
+        Schema::dropIfExists('webhook_sync_events');
     }
 };

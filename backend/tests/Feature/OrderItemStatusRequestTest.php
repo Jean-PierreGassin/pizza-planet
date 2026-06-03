@@ -4,9 +4,10 @@ namespace Tests\Feature;
 
 use App\Enums\OrderItemStatus;
 use App\Events\OrderItemStatusChangedEvent;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\User;
+use App\Events\OrderStatusChangedEvent;
+use App\Models\OrderModel;
+use App\Models\OrderItemModel;
+use App\Models\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\Support\InteractsWithWebsiteWebhookConfig;
@@ -31,9 +32,9 @@ class OrderItemStatusRequestTest extends TestCase
     public function testApiRejectsMissingOrderItemsBeforeTransition(): void
     {
         $this->authenticate();
-        Event::fake([OrderItemStatusChangedEvent::class]);
+        Event::fake([OrderItemStatusChangedEvent::class, OrderStatusChangedEvent::class]);
 
-        $order = Order::factory()->create();
+        $order = OrderModel::factory()->create();
 
         $response = $this->patchJson('/api/order-item-status', [
             'order_id' => $order->id,
@@ -44,20 +45,20 @@ class OrderItemStatusRequestTest extends TestCase
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('order_item_id');
 
-        $this->assertDatabaseCount('item_status_events', 0);
-        $this->assertDatabaseCount('order_item_sync_events', 0);
+        $this->assertDatabaseCount('order_item_status_events', 0);
+        $this->assertDatabaseCount('webhook_sync_events', 0);
         Event::assertNotDispatched(OrderItemStatusChangedEvent::class);
     }
 
     public function testApiRejectsOrderItemsThatDoNotBelongToTheOrder(): void
     {
         $this->authenticate();
-        Event::fake([OrderItemStatusChangedEvent::class]);
+        Event::fake([OrderItemStatusChangedEvent::class, OrderStatusChangedEvent::class]);
         $this->configureWebsiteWebhook();
 
-        $order = Order::factory()->create();
-        $otherOrder = Order::factory()->create();
-        $item = OrderItem::factory()->for($otherOrder)->create([
+        $order = OrderModel::factory()->create();
+        $otherOrder = OrderModel::factory()->create();
+        $item = OrderItemModel::factory()->for($otherOrder, 'order')->create([
             'status' => OrderItemStatus::Pending,
         ]);
 
@@ -73,13 +74,13 @@ class OrderItemStatusRequestTest extends TestCase
             'id' => $item->id,
             'status' => OrderItemStatus::Pending->value,
         ]);
-        $this->assertDatabaseCount('item_status_events', 0);
-        $this->assertDatabaseCount('order_item_sync_events', 0);
+        $this->assertDatabaseCount('order_item_status_events', 0);
+        $this->assertDatabaseCount('webhook_sync_events', 0);
         Event::assertNotDispatched(OrderItemStatusChangedEvent::class);
     }
 
     private function authenticate(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(UserModel::factory()->create());
     }
 }

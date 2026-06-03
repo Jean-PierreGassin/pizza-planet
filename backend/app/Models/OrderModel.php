@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Enums\OrderFulfillmentType;
 use App\Enums\OrderStatus;
-use Database\Factories\OrderFactory;
+use Database\Factories\OrderModelFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,10 +17,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property OrderStatus $status
  */
 #[Fillable(['reference', 'fulfillment_type', 'status'])]
-class Order extends Model
+class OrderModel extends Model
 {
-    /** @use HasFactory<OrderFactory> */
+    /** @use HasFactory<OrderModelFactory> */
     use HasFactory;
+
+    protected $table = 'orders';
 
     protected function casts(): array
     {
@@ -32,6 +34,17 @@ class Order extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasMany(
+            related: OrderItemModel::class,
+            foreignKey: 'order_id',
+        );
+    }
+
+    public function statusEvents(): HasMany
+    {
+        return $this->hasMany(
+            related: OrderStatusEventModel::class,
+            foreignKey: 'order_id',
+        );
     }
 }

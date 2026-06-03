@@ -67,7 +67,7 @@ class OrderStatusTypesTest extends TestCase
     {
         $this->assertSame([
             'order_item.status_updated',
-            'order.status_finalized',
+            'order.status_changed',
         ], array_map(
             fn (WebhookEventType $eventType): string => $eventType->value,
             WebhookEventType::cases(),
