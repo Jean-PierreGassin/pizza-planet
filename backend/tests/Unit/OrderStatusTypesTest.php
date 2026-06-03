@@ -6,6 +6,7 @@ use App\Enums\OrderFulfillmentType;
 use App\Enums\OrderItemStatus;
 use App\Enums\OrderStatus;
 use App\Enums\SyncEventStatus;
+use App\Enums\WebhookEventType;
 use PHPUnit\Framework\TestCase;
 
 class OrderStatusTypesTest extends TestCase
@@ -59,6 +60,17 @@ class OrderStatusTypesTest extends TestCase
         ], array_map(
             fn (SyncEventStatus $status): string => $status->value,
             SyncEventStatus::cases(),
+        ));
+    }
+
+    public function testWebhookEventTypeExposesPayloadValues(): void
+    {
+        $this->assertSame([
+            'order_item.status_updated',
+            'order.status_finalized',
+        ], array_map(
+            fn (WebhookEventType $eventType): string => $eventType->value,
+            WebhookEventType::cases(),
         ));
     }
 }

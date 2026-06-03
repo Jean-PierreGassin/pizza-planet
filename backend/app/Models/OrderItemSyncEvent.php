@@ -3,12 +3,21 @@
 namespace App\Models;
 
 use App\Enums\SyncEventStatus;
+use Carbon\Carbon;
 use Database\Factories\OrderItemSyncEventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $item_status_event_id
+ * @property array<string, mixed> $payload
+ * @property SyncEventStatus $status
+ * @property Carbon|null $last_attempted_at
+ * @property Carbon|null $delivered_at
+ */
 #[Fillable([
     'item_status_event_id',
     'destination_url',

@@ -10,6 +10,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property int $order_id
+ * @property string $name
+ * @property OrderItemStatus $status
+ * @property Order $order
+ */
 #[Fillable(['order_id', 'name', 'status'])]
 class OrderItem extends Model
 {
