@@ -20,4 +20,25 @@ class OrderModelFactory extends Factory
             'status' => OrderStatus::Pending,
         ];
     }
+
+    public function delivery(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'fulfillment_type' => OrderFulfillmentType::Delivery,
+        ]);
+    }
+
+    public function pickup(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'fulfillment_type' => OrderFulfillmentType::Pickup,
+        ]);
+    }
+
+    public function pending(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => OrderStatus::Pending,
+        ]);
+    }
 }

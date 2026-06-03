@@ -43,4 +43,13 @@ class UserModelFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    public function mario(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'name' => 'Mario',
+            'email' => 'mario@pizzaplanet.test',
+            'password' => Hash::make('ilovepizza'),
+        ]);
+    }
 }

@@ -42,9 +42,7 @@ class OrderItemStatusTransitionTest extends TestCase
             'status' => $fromStatus,
         ]);
 
-        $response = $this->patchJson('/api/order-item-status', [
-            'order_id' => $order->id,
-            'order_item_id' => $item->id,
+        $response = $this->patchJson("/api/v1/orders/{$order->id}/items/{$item->id}", [
             'status' => $toStatus->value,
         ]);
 
@@ -102,9 +100,7 @@ class OrderItemStatusTransitionTest extends TestCase
             'status' => $fromStatus,
         ]);
 
-        $response = $this->patchJson('/api/order-item-status', [
-            'order_id' => $order->id,
-            'order_item_id' => $item->id,
+        $response = $this->patchJson("/api/v1/orders/{$order->id}/items/{$item->id}", [
             'status' => $toStatus->value,
         ]);
 
@@ -131,9 +127,7 @@ class OrderItemStatusTransitionTest extends TestCase
             'status' => OrderItemStatus::Pending,
         ]);
 
-        $response = $this->patchJson('/api/order-item-status', [
-            'order_id' => $order->id,
-            'order_item_id' => $item->id,
+        $response = $this->patchJson("/api/v1/orders/{$order->id}/items/{$item->id}", [
             'status' => OrderItemStatus::Preparing->value,
         ]);
 
@@ -162,9 +156,7 @@ class OrderItemStatusTransitionTest extends TestCase
             'status' => OrderItemStatus::Pending,
         ]);
 
-        $response = $this->patchJson('/api/order-item-status', [
-            'order_id' => $order->id,
-            'order_item_id' => $item->id,
+        $response = $this->patchJson("/api/v1/orders/{$order->id}/items/{$item->id}", [
             'status' => OrderItemStatus::Preparing->value,
         ]);
 

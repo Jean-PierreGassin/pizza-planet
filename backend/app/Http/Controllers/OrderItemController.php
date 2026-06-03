@@ -8,19 +8,19 @@ use App\Services\OrderItemStatusTransitionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 
-class OrderItemStatusController extends Controller
+class OrderItemController extends Controller
 {
     public function __construct(
         private readonly OrderItemStatusTransitionService $statusTransitionService,
     ) {
     }
 
-    public function update(UpdateOrderItemStatusRequest $request): JsonResponse
+    public function update(UpdateOrderItemStatusRequest $request, int $order, int $item): JsonResponse
     {
         try {
             $result = $this->statusTransitionService->transition(
-                orderId: $request->orderId(),
-                orderItemId: $request->orderItemId(),
+                orderId: $order,
+                orderItemId: $item,
                 status: $request->status(),
             );
         } catch (InvalidOrderItemStatusTransition $exception) {

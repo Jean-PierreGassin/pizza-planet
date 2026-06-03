@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $reference
  * @property OrderFulfillmentType $fulfillment_type
  * @property OrderStatus $status
+ * @property \Illuminate\Database\Eloquent\Collection<int, OrderItemModel> $items
  */
 #[Fillable(['reference', 'fulfillment_type', 'status'])]
 class OrderModel extends Model
@@ -32,6 +33,9 @@ class OrderModel extends Model
         ];
     }
 
+    /**
+     * @return HasMany<OrderItemModel, $this>
+     */
     public function items(): HasMany
     {
         return $this->hasMany(
@@ -40,6 +44,9 @@ class OrderModel extends Model
         );
     }
 
+    /**
+     * @return HasMany<OrderStatusEventModel, $this>
+     */
     public function statusEvents(): HasMany
     {
         return $this->hasMany(

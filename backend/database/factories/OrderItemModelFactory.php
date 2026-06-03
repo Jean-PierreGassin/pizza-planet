@@ -25,4 +25,18 @@ class OrderItemModelFactory extends Factory
             'status' => OrderItemStatus::Pending,
         ];
     }
+
+    public function named(string $name): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'name' => $name,
+        ]);
+    }
+
+    public function pending(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => OrderItemStatus::Pending,
+        ]);
+    }
 }

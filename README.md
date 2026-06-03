@@ -6,6 +6,7 @@ Pizza Planet is a split Laravel and Vue application.
 
 - [Project layout](#project-layout)
 - [Get up and running](#get-up-and-running)
+- [Demo login](#demo-login)
 - [Checks](#checks)
 - [Integration guides](#integration-guides)
 
@@ -64,6 +65,17 @@ Local URLs:
 - Website: http://127.0.0.1:5173/
 - API: http://127.0.0.1:8000/
 
+## Demo login
+
+The local seed data creates a demo crew user:
+
+- Email: `mario@pizzaplanet.test`
+- Password: `ilovepizza`
+
+Type those credentials into the frontend login form. The form intentionally does not prefill them.
+
+The seeded demo orders and order items are created when the backend setup script runs. API route details and the Postman import flow are documented in [.docs/backend/routes/API-v1.md](.docs/backend/routes/API-v1.md).
+
 ## Checks
 
 Run app-specific checks using each guide:
@@ -74,3 +86,4 @@ Run app-specific checks using each guide:
 ## Integration guides
 
 - Backend website webhooks: [backend/WEBHOOK-README.md](backend/WEBHOOK-README.md)
+- API v1 routes and Postman import: [.docs/backend/routes/API-v1.md](.docs/backend/routes/API-v1.md)

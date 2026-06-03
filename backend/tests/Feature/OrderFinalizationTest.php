@@ -41,9 +41,7 @@ class OrderFinalizationTest extends TestCase
             'status' => OrderItemStatus::Baking,
         ]);
 
-        $response = $this->patchJson('/api/order-item-status', [
-            'order_id' => $order->id,
-            'order_item_id' => $item->id,
+        $response = $this->patchJson("/api/v1/orders/{$order->id}/items/{$item->id}", [
             'status' => OrderItemStatus::Ready->value,
         ]);
 
@@ -77,9 +75,7 @@ class OrderFinalizationTest extends TestCase
             'status' => OrderItemStatus::Ready,
         ]);
 
-        $response = $this->patchJson('/api/order-item-status', [
-            'order_id' => $order->id,
-            'order_item_id' => $item->id,
+        $response = $this->patchJson("/api/v1/orders/{$order->id}/items/{$item->id}", [
             'status' => OrderItemStatus::Ready->value,
         ]);
 
@@ -139,9 +135,7 @@ class OrderFinalizationTest extends TestCase
             'status' => OrderItemStatus::Ready,
         ]);
 
-        $response = $this->patchJson('/api/order-item-status', [
-            'order_id' => $order->id,
-            'order_item_id' => $item->id,
+        $response = $this->patchJson("/api/v1/orders/{$order->id}/items/{$item->id}", [
             'status' => OrderItemStatus::Ready->value,
         ]);
 
