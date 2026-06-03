@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\DTOs\UpdateOrderItemStatusDTO;
 use App\Enums\OrderItemStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -30,14 +29,18 @@ class UpdateOrderItemStatusRequest extends FormRequest
         ];
     }
 
-    public function toData(): UpdateOrderItemStatusDTO
+    public function orderId(): int
     {
-        $validated = $this->validated();
+        return $this->integer(key: 'order_id');
+    }
 
-        return new UpdateOrderItemStatusDTO(
-            orderId: $validated['order_id'],
-            orderItemId: $validated['order_item_id'],
-            status: OrderItemStatus::from($validated['status']),
-        );
+    public function orderItemId(): int
+    {
+        return $this->integer(key: 'order_item_id');
+    }
+
+    public function status(): OrderItemStatus
+    {
+        return OrderItemStatus::from($this->string(key: 'status')->toString());
     }
 }

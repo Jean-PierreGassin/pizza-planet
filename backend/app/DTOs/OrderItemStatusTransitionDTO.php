@@ -3,16 +3,24 @@
 namespace App\DTOs;
 
 use App\Enums\OrderItemStatus;
-use App\Models\Order;
-use App\Models\OrderItem;
+use App\Models\OrderModel;
+use App\Models\OrderItemModel;
 
 class OrderItemStatusTransitionDTO
 {
     public function __construct(
-        public readonly Order $order,
-        public readonly OrderItem $orderItem,
+        public readonly OrderModel $order,
+        public readonly OrderItemModel $orderItem,
         public readonly OrderItemStatus $fromStatus,
         public readonly OrderItemStatus $toStatus,
     ) {
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'order_item_id' => $this->orderItem->id,
+            'status' => $this->toStatus->value,
+        ];
     }
 }

@@ -2,40 +2,48 @@
 
 namespace App\Repositories;
 
-use App\DTOs\OrderItemStatusTransitionDTO;
+use App\DTOs\OrderStatusTransitionDTO;
 use App\Enums\OrderItemStatus;
 use App\Enums\OrderStatus;
-use App\Models\Order;
+use App\Models\OrderModel;
 
 class OrderRepository
 {
-    public function findForFinalization(OrderItemStatusTransitionDTO $transition): OrderItemStatusTransitionDTO
+    public function findForStatusTransition(int $orderId, OrderStatus $toStatus): OrderStatusTransitionDTO
     {
-        $order = Order::query()
-            ->whereKey($transition->order->id)
+        $order = OrderModel::query()
+            ->whereKey($orderId)
             ->lockForUpdate()
             ->firstOrFail();
 
-        return new OrderItemStatusTransitionDTO(
+        return new OrderStatusTransitionDTO(
             order: $order,
-            orderItem: $transition->orderItem,
-            fromStatus: $transition->fromStatus,
-            toStatus: $transition->toStatus,
+            fromStatus: $order->status,
+            toStatus: $toStatus,
         );
     }
 
-    public function hasItemsNotReady(Order $order): bool
+    public function hasItemsNotReady(OrderModel $order): bool
     {
         return $order->items()
             ->where('status', '!=', OrderItemStatus::Ready->value)
             ->exists();
     }
 
-    public function updateStatus(Order $order, OrderStatus $status): Order
+    public function updateStatus(OrderStatusTransitionDTO $transition): OrderStatusTransitionDTO
     {
-        $order->setAttribute('status', $status);
-        $order->save();
+        $transition->order->setAttribute('status', $transition->toStatus);
+        $transition->order->save();
 
-        return $order;
+        return new OrderStatusTransitionDTO(
+            order: $transition->order,
+            fromStatus: $transition->fromStatus,
+            toStatus: $transition->toStatus,
+        );
+    }
+
+    public function find(int $id): OrderModel
+    {
+        return OrderModel::query()->findOrFail($id);
     }
 }

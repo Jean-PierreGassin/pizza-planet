@@ -18,18 +18,17 @@ class OrderItemStatusController extends Controller
     public function update(UpdateOrderItemStatusRequest $request): JsonResponse
     {
         try {
-            $result = $this->statusTransitionService->transition($request->toData());
+            $result = $this->statusTransitionService->transition(
+                orderId: $request->orderId(),
+                orderItemId: $request->orderItemId(),
+                status: $request->status(),
+            );
         } catch (InvalidOrderItemStatusTransition $exception) {
-            throw ValidationException::withMessages([
+            throw ValidationException::withMessages(messages: [
                 'status' => [$exception->getMessage()],
             ]);
         }
 
-        return response()->json([
-            'order_item_id' => $result->orderItem->id,
-            'status' => $result->status->value,
-            'item_status_event_id' => $result->itemStatusEvent->id,
-            'order_item_sync_event_id' => $result->syncEvent->id,
-        ]);
+        return response()->json(data: $result->toArray());
     }
 }
