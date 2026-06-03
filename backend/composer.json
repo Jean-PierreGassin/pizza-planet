@@ -9,7 +9,8 @@
         "php": "^8.3",
         "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0",
-        "predis/predis": "^3.4"
+        "predis/predis": "^3.4",
+        "spatie/laravel-webhook-server": "^3.10"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -47,6 +48,9 @@
         ],
         "analyse": [
             "php -d memory_limit=1G vendor/bin/phpstan analyse --debug"
+        ],
+        "webhook:secret": [
+            "@php -r \"echo bin2hex(random_bytes(32)).PHP_EOL;\""
         ],
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",

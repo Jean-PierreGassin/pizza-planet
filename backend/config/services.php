@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'website' => [
+        'webhook_url' => env('WEBSITE_WEBHOOK_URL'),
+        'webhook_secret' => env('WEBSITE_WEBHOOK_SECRET'),
+    ],
+
 ];
