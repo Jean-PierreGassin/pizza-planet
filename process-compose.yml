@@ -6,6 +6,11 @@ processes:
     availability:
       restart: on_failure
       max_restarts: 5
+  queue-worker:
+    command: "cd backend && php artisan queue:work redis --queue=webhooks,default --sleep=1 --tries=3"
+    availability:
+      restart: on_failure
+      max_restarts: 5
   website:
     command: "cd frontend && pnpm dev"
     availability:

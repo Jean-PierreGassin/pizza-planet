@@ -35,7 +35,7 @@ devbox run preflight
 
 On a fresh checkout, complete the app-specific setup in the backend and frontend guides before starting the full service set.
 
-Start MySQL, Redis, the API, and the website:
+Start MySQL, Redis, the API, the queue worker, and the website:
 
 ```sh
 devbox run services:start
@@ -64,6 +64,7 @@ Local URLs:
 
 - Website: http://127.0.0.1:5173/
 - API: http://127.0.0.1:8000/
+- Queue worker: runs through Devbox services for Redis queues `webhooks` and `default`.
 
 ## Demo login
 
